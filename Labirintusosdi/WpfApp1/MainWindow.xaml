@@ -15,5 +15,11 @@
             <ColumnDefinition Width="3*"/>
             <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Row="1" Grid.Column="1">
+            <Label HorizontalAlignment="Center">Read file</Label>
+            <!-- Geri pls meg tudnád csinálni hogy a button magassága a maradéka legyen a stackpanelnek-->
+            <Button VerticalAlignment="Stretch" Cursor="Hand" BorderBrush="Black" Foreground="Black" Background="#FFB9B9B9" Click="Button_Click">READ</Button>
+        </StackPanel>
     </Grid>
 </Window>
