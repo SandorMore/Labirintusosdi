@@ -32,6 +32,7 @@ namespace WpfApp1
                 Tuple<char[,], int, int> t = res;
                 labyrinth = new Labyrinth(t.Item2, t.Item3, t.Item1);
             }
+            labyrinth.print_labyrinth();
         }
         Tuple<char[,], int, int>? read_map()
         {

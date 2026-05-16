@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Diagnostics;
 
 namespace WpfApp1.Models
 {
@@ -21,12 +22,13 @@ namespace WpfApp1.Models
 
         public void print_labyrinth()
         {
-            for(int row = 0; row < width; ++row)
+            for (int row = 0; row < height; ++row)
             {
-                for (int col = 0; col < height; ++col)
+                for (int col = 0; col < width; ++col)
                 {
-                    Console.WriteLine(map[row,col]);
+                    Trace.Write(map[row, col]);
                 }
+                Trace.Write('\n');
             }
         }
         public int Width { get => width; set => width = value; }
