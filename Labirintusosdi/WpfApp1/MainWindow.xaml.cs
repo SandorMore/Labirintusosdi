@@ -17,6 +17,7 @@ namespace WpfApp1
 {
     public partial class MainWindow : Window
     {
+        Labyrinth labyrinth;
         LANG lang = LANG.HUN;
         public MainWindow()
         {
@@ -29,7 +30,7 @@ namespace WpfApp1
             if (res != null)
             {
                 Tuple<char[,], int, int> t = res;
-                Labyrinth labyrinth = new Labyrinth(t.Item2, t.Item3, t.Item1);
+                labyrinth = new Labyrinth(t.Item2, t.Item3, t.Item1);
             }
         }
         Tuple<char[,], int, int>? read_map()
@@ -40,7 +41,7 @@ namespace WpfApp1
 
             if (ofd.ShowDialog() != true)
             {
-                MessageBox.Show((lang == LANG.HUN) ? "Nem lehetett beolvasni a filet!" : "Couldn't open the file!");
+                MessageBox.Show((lang == LANG.HUN) ? "Nem lehetett beolvasni a fájlt!" : "Couldn't open the file!");
                 return null;
             }
 
@@ -50,6 +51,7 @@ namespace WpfApp1
             try
             {
                 lines = File.ReadAllLines(mapPath, Encoding.UTF8);
+                MessageBox.Show((lang == LANG.HUN) ? "A fájlt sikeresen beolvasta!" : "The file has benn read sucessfully");
             }
             catch (System.Exception ex)
             {
