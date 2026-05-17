@@ -5,7 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp1"
         mc:Ignorable="d"
-        Title="Labirintus Játék" Height="450" Width="800">
+        Title="Labirintus Játék" Height="500" Width="800"
+        Focusable="True"
+        >
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="4*"/>
@@ -19,12 +21,19 @@
         <Canvas x:Name="gameCanvas" Background="Black">
             
         </Canvas>
-        
-        
+
+        <StackPanel Grid.Column="1">
+            <Label x:Name="lbTotalNumberOfRows"></Label>
+            <Label x:Name="lbDebug"></Label>
+        </StackPanel>
         <StackPanel Grid.Row="1" Grid.Column="1">
             <Label x:Name="lbRead" HorizontalAlignment="Center"></Label>
             <!-- Geri pls meg tudnád csinálni hogy a button magassága a maradéka legyen a stackpanelnek-->
             <Button x:Name="btnRead" VerticalAlignment="Stretch" Cursor="Hand" BorderBrush="Black" Foreground="Black" Background="#FFB9B9B9" Click="Button_Click">READ</Button>
+
+            <Label x:Name="lbLanguage"></Label>
+            <RadioButton GroupName="Lang" x:Name="rbEng" Checked="rbEng_Checked"></RadioButton>
+            <RadioButton GroupName="Lang" x:Name="rbHun" Checked="rbHun_Checked"></RadioButton>
         </StackPanel>
     </Grid>
 </Window>

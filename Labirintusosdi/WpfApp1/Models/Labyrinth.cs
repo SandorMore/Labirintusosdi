@@ -31,6 +31,19 @@ namespace WpfApp1.Models
                 Trace.Write('\n');
             }
         }
+
+        public int get_room_number()
+        {
+            for (int row = 0; row < height; ++row)
+            {
+                for (int col = 0; col < width; ++col)
+                {
+                    if (map[row, col] == '█')
+                        ++rooms;
+                }
+            }
+            return this.rooms;
+        }
         public int Width { get => width; set => width = value; }
         public int Height { get => height; set => height = value; }
         public int Rooms { get => rooms; set => rooms = value; }
