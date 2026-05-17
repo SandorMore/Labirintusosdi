@@ -9,7 +9,7 @@ namespace WpfApp1.Utils
         ENG,
         HUN
     }
-    internal class Utils
+    public class Utils
     {
 
     }
