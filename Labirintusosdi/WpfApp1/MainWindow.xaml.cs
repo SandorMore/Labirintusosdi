@@ -1,5 +1,8 @@
 ﻿using Microsoft.Win32;
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -28,6 +31,9 @@ namespace WpfApp1
 
         bool canExitDungeon = false;
 
+        bool fogOfWarEnabled = false;
+        bool progressiveFogOfWar = false; // New mode
+
         char[,] currentMap;
         int mapWidth;
         int mapHeight;
@@ -38,6 +44,8 @@ namespace WpfApp1
         List<(int, int)> entranceList;
 
         HashSet<(int, int)> visitedRooms = new HashSet<(int, int)>();
+
+        HashSet<(int, int)> discoveredTiles = new HashSet<(int, int)>();
 
         public MainWindow()
         {
@@ -78,13 +86,12 @@ namespace WpfApp1
             labyrinth = new Labyrinth(mapWidth, mapHeight, currentMap);
 
             visitedRooms.Clear();
+            discoveredTiles.Clear();
 
             roomsFound = 0;
             allRooms = 0;
 
             canExitDungeon = false;
-
-            render_map(currentMap, mapWidth, mapHeight);
 
             allRooms = labyrinth.get_room_number();
 
@@ -99,6 +106,12 @@ namespace WpfApp1
 
             playerX = startPos.Item1;
             playerY = startPos.Item2;
+
+            // Clear discovered tiles and add only starting position
+            discoveredTiles.Clear();
+            discover_current_tile();
+
+            render_map(currentMap, mapWidth, mapHeight);
 
             create_player();
 
@@ -147,15 +160,40 @@ namespace WpfApp1
             if (newX < 0 || newY < 0 ||
                 newX >= mapWidth || newY >= mapHeight)
             {
-                if (canExitDungeon &&
-                    is_entrance(playerX, playerY))
+                if (is_entrance(playerX, playerY))
                 {
-                    MessageBox.Show(
-                        (lang == LANG.HUN)
-                        ? "Sikeresen kijutottál a labirintusból!"
-                        : "You escaped the labyrinth!");
+                    MessageBoxResult result;
 
-                    Close();
+                    if (!canExitDungeon)
+                    {
+                        result = MessageBox.Show(
+                            (lang == LANG.HUN)
+                            ? "Még nem találtál szobát. Biztosan ki akarsz lépni?"
+                            : "You have not found any rooms yet. Are you sure you want to leave?",
+                            "Exit",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+                    }
+                    else
+                    {
+                        result = MessageBox.Show(
+                            (lang == LANG.HUN)
+                            ? "Biztosan ki akarsz lépni a labirintusból?"
+                            : "Are you sure you want to leave the labyrinth?",
+                            "Exit",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+                    }
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        MessageBox.Show(
+                            (lang == LANG.HUN)
+                            ? "Sikeresen kijutottál a labirintusból!"
+                            : "You escaped the labyrinth!");
+
+                        Close();
+                    }
                 }
 
                 return;
@@ -324,17 +362,57 @@ namespace WpfApp1
             playerX = newX;
             playerY = newY;
 
+            discover_current_tile();
+
+            // In progressive mode, discover surrounding tiles
+            if (progressiveFogOfWar)
+            {
+                discover_surrounding_tiles(newX, newY);
+            }
+
+            render_map(currentMap, mapWidth, mapHeight);
+
             update_player();
 
             add_room();
 
+            lbMoves.Items.Add($"({playerY},{playerX})");
+
             update_directions(labyrinth.Map[playerY, playerX]);
+        }
+
+        void discover_surrounding_tiles(int x, int y)
+        {
+            // Discover tiles in a 1-tile radius around the player
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    int newX = x + dx;
+                    int newY = y + dy;
+
+                    // Check bounds
+                    if (newX >= 0 && newX < mapWidth && newY >= 0 && newY < mapHeight)
+                    {
+                        discoveredTiles.Add((newX, newY));
+                    }
+                }
+            }
         }
 
         void update_player()
         {
-            Canvas.SetLeft(player, playerX * TILESIZE);
-            Canvas.SetTop(player, playerY * TILESIZE);
+            try
+            {
+                Canvas.SetLeft(player, playerX * TILESIZE);
+                Canvas.SetTop(player, playerY * TILESIZE);
+            }catch(Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                MessageBox.Show((lang == LANG.HUN) ? "Először olvass be térképet!" : "Read a map first");
+                return;
+            }
+
         }
 
         void create_player()
@@ -346,13 +424,20 @@ namespace WpfApp1
             {
                 Width = TILESIZE,
                 Height = TILESIZE,
-                Fill = Brushes.LightCoral
+                Fill = Brushes.LightCoral,
+                Stroke = Brushes.White,
+                StrokeThickness = 1
             };
 
             Canvas.SetLeft(player, playerX * TILESIZE);
             Canvas.SetTop(player, playerY * TILESIZE);
 
             gameCanvas.Children.Add(player);
+        }
+
+        void discover_current_tile()
+        {
+            discoveredTiles.Add((playerX, playerY));
         }
 
         void render_map(char[,] map, int width, int height)
@@ -363,12 +448,15 @@ namespace WpfApp1
             {
                 for (int x = 0; x < width; x++)
                 {
+                    bool visible = !fogOfWarEnabled || discoveredTiles.Contains((x, y));
+
                     TextBlock tile = new TextBlock
                     {
-                        Text = map[y, x].ToString(),
+                        Text = visible ? map[y, x].ToString() : " ",
                         FontFamily = new FontFamily("Consolas"),
                         FontSize = 20,
-                        Foreground = Brushes.White
+                        Foreground = visible ? Brushes.White : Brushes.Gray,
+                        Background = visible ? Brushes.Transparent : Brushes.Black
                     };
 
                     Canvas.SetLeft(tile, x * TILESIZE);
@@ -488,6 +576,14 @@ namespace WpfApp1
                 ? $"{roomsFound} / {allRooms} megtalálva!"
                 : $"Found: {roomsFound} / {allRooms}!";
 
+            lbInfo.Content = (lang == LANG.HUN)
+                ? $"Lépések: "
+                : $"Moves: ";
+
+            btnProgressiveFog.Content = (lang == LANG.HUN)
+                ? $"Fokozatos felfedezés"
+                : $"Progressive discovery";
+
             update_directions(
                 labyrinth != null
                 ? labyrinth.Map[playerY, playerX]
@@ -512,6 +608,51 @@ namespace WpfApp1
             lang = LANG.HUN;
 
             update_language();
+        }
+
+        private void btnFogOfWar_Checked(object sender, RoutedEventArgs e)
+        {
+            fogOfWarEnabled = true;
+            progressiveFogOfWar = false;
+
+            discoveredTiles.Clear();
+            discover_current_tile();
+
+            render_map(currentMap, mapWidth, mapHeight);
+            update_player();
+        }
+
+        private void btnFogOfWar_Unchecked(object sender, RoutedEventArgs e)
+        {
+            fogOfWarEnabled = false;
+            progressiveFogOfWar = false;
+
+            render_map(currentMap, mapWidth, mapHeight);
+            update_player();
+        }
+
+        private void btnProgressiveFog_Checked(object sender, RoutedEventArgs e)
+        {
+            fogOfWarEnabled = true;
+            progressiveFogOfWar = true;
+
+            discoveredTiles.Clear();
+            discover_current_tile();
+            discover_surrounding_tiles(playerX, playerY);
+
+            render_map(currentMap, mapWidth, mapHeight);
+            update_player();
+        }
+
+        private void btnProgressiveFog_Unchecked(object sender, RoutedEventArgs e)
+        {
+            progressiveFogOfWar = false;
+
+            if (!fogOfWarEnabled)
+            {
+                render_map(currentMap, mapWidth, mapHeight);
+                update_player();
+            }
         }
     }
 }
