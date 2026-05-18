@@ -11,12 +11,18 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using WpfApp1.Models;
 using WpfApp1.Utils;
+using System.Timers;
+using System.Windows.Threading;
+
 
 namespace WpfApp1
 {
     public partial class MainWindow : Window
     {
         Labyrinth labyrinth;
+        System.Timers.Timer aTimer = new System.Timers.Timer();
+        DispatcherTimer gameTimer;
+        TimeSpan remainingTime;
 
         LANG lang = LANG.ENG;
 
@@ -107,7 +113,7 @@ namespace WpfApp1
             playerX = startPos.Item1;
             playerY = startPos.Item2;
 
-            // Clear discovered tiles and add only starting position
+  
             discoveredTiles.Clear();
             discover_current_tile();
 
@@ -115,7 +121,64 @@ namespace WpfApp1
 
             create_player();
 
+            StartGameTimer();
+
             update_directions(labyrinth.Map[playerY, playerX]);
+        }
+
+        void StartGameTimer()
+        {
+            try
+            {
+                // Stop existing timer if any
+                StopGameTimer();
+
+                remainingTime = TimeSpan.FromMinutes(1);
+
+                gameTimer = new DispatcherTimer();
+                gameTimer.Interval = TimeSpan.FromSeconds(1);
+                gameTimer.Tick += (s, e) =>
+                {
+                    remainingTime = remainingTime - TimeSpan.FromSeconds(1);
+                    lbTimer.Content = (lang == LANG.HUN)
+                        ? $"Idő: {remainingTime}"
+                        : $"Time: {remainingTime}";
+
+                    if (remainingTime <= TimeSpan.Zero)
+                    {
+                        // stop and handle loss
+                        StopGameTimer();
+                        OnTimerElapsed();
+                    }
+                };
+
+                lbTimer.Content = (lang == LANG.HUN) ? $"Idő: {remainingTime.ToString(@"mm\:ss")}" : $"Time: {remainingTime.ToString(@"mm\:ss")}";
+                gameTimer.Start();
+            }
+            catch { }
+        }
+
+        void StopGameTimer()
+        {
+            if (gameTimer != null)
+            {
+                gameTimer.Stop();
+                gameTimer = null;
+            }
+        }
+
+        void OnTimerElapsed()
+        {
+            MessageBox.Show(
+                (lang == LANG.HUN) ? "Lejárt az idő. Vesztettél!" : "Time's up. You lost!");
+
+            // Re-enable reading a new map and disable further movement
+            btnRead.IsEnabled = true;
+
+            labyrinth = null;
+
+            // Clear canvas / player
+            try { gameCanvas.Children.Clear(); } catch { }
         }
 
         private void MainWindow_KeyDown(object sender, KeyEventArgs e)
@@ -383,7 +446,6 @@ namespace WpfApp1
 
         void discover_surrounding_tiles(int x, int y)
         {
-            // Discover tiles in a 1-tile radius around the player
             for (int dy = -1; dy <= 1; dy++)
             {
                 for (int dx = -1; dx <= 1; dx++)
@@ -391,7 +453,7 @@ namespace WpfApp1
                     int newX = x + dx;
                     int newY = y + dy;
 
-                    // Check bounds
+                    
                     if (newX >= 0 && newX < mapWidth && newY >= 0 && newY < mapHeight)
                     {
                         discoveredTiles.Add((newX, newY));
@@ -464,6 +526,13 @@ namespace WpfApp1
 
                     gameCanvas.Children.Add(tile);
                 }
+            }
+
+            if (player != null)
+            {
+                Canvas.SetLeft(player, playerX * TILESIZE);
+                Canvas.SetTop(player, playerY * TILESIZE);
+                gameCanvas.Children.Add(player);
             }
         }
 
@@ -579,6 +648,17 @@ namespace WpfApp1
             lbInfo.Content = (lang == LANG.HUN)
                 ? $"Lépések: "
                 : $"Moves: ";
+
+            if (gameTimer != null)
+            {
+                lbTimer.Content = (lang == LANG.HUN)
+                    ? $"Idő: {remainingTime.ToString(@"mm\:ss")}"
+                    : $"Time: {remainingTime.ToString(@"mm\:ss")}";
+            }
+            else
+            {
+                lbTimer.Content = (lang == LANG.HUN) ? "Idő: 01:00" : "Time: 01:00";
+            }
 
             btnProgressiveFog.Content = (lang == LANG.HUN)
                 ? $"Fokozatos felfedezés"

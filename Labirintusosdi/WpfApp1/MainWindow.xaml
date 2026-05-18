@@ -24,6 +24,7 @@
 
         <StackPanel Grid.Column="1">
             <Label x:Name="lbInfo"></Label>
+            <Label x:Name="lbTimer" HorizontalAlignment="Center"></Label>
             <ListBox ScrollViewer.VerticalScrollBarVisibility="Visible" x:Name="lbMoves"></ListBox>
         </StackPanel>
         
