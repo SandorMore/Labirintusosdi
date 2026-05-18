@@ -23,6 +23,11 @@
         </Canvas>
 
         <StackPanel Grid.Column="1">
+            <Label x:Name="lbInfo"></Label>
+            <ListBox ScrollViewer.VerticalScrollBarVisibility="Visible" x:Name="lbMoves"></ListBox>
+        </StackPanel>
+        
+        <StackPanel Grid.Column="1">
             <Label x:Name="lbTotalNumberOfRows"></Label>
             <Label x:Name="lbDebug"></Label>
         </StackPanel>
@@ -39,6 +44,13 @@
         <StackPanel Grid.Row="1" Grid.Column="0">
             <Label x:Name="lbDirectionsFromCurrent"></Label>
             <Label x:Name="lbFoundRooms"></Label>
+
+            <CheckBox x:Name="btnProgressiveFog" 
+                  Content="Progressive discovery" 
+                  Checked="btnProgressiveFog_Checked" 
+                  Unchecked="btnProgressiveFog_Unchecked"
+                  IsThreeState="False"
+                  Margin="5"/>
         </StackPanel>
     </Grid>
 </Window>
