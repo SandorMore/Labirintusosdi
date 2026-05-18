@@ -62,7 +62,7 @@ namespace WpfApp1
             isLoaded = true;
 
             this.Loaded += (s, e) => Keyboard.Focus(this);
-
+            rbEng.IsChecked = true;
             this.KeyDown += MainWindow_KeyDown;
 
             lbDirectionsFromCurrent.Content =
