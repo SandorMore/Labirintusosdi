@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp1"
         mc:Ignorable="d"
-        Title="Labirintus Játék" Height="500" Width="800"
+        Title="Labirintus Játék" Height="700" Width="800"
         Focusable="True"
         >
     <Grid>
@@ -34,6 +34,11 @@
             <Label x:Name="lbLanguage"></Label>
             <RadioButton GroupName="Lang" x:Name="rbEng" Checked="rbEng_Checked"></RadioButton>
             <RadioButton GroupName="Lang" x:Name="rbHun" Checked="rbHun_Checked"></RadioButton>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Grid.Column="0">
+            <Label x:Name="lbDirectionsFromCurrent"></Label>
+            <Label x:Name="lbFoundRooms"></Label>
         </StackPanel>
     </Grid>
 </Window>
