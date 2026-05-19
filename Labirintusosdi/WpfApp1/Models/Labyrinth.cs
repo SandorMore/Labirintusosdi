@@ -31,9 +31,9 @@ namespace WpfApp1.Models
                 Trace.Write('\n');
             }
         }
-
         public int get_room_number()
         {
+
             for (int row = 0; row < height; ++row)
             {
                 for (int col = 0; col < width; ++col)
@@ -42,6 +42,7 @@ namespace WpfApp1.Models
                         ++rooms;
                 }
             }
+        
             return this.rooms;
         }
         public int Width { get => width; set => width = value; }

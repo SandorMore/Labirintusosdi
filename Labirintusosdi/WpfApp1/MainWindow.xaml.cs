@@ -13,6 +13,7 @@ using WpfApp1.Models;
 using WpfApp1.Utils;
 using System.Timers;
 using System.Windows.Threading;
+using System.Diagnostics;
 
 
 namespace WpfApp1
@@ -46,6 +47,8 @@ namespace WpfApp1
 
         int allRooms = 0;
         int roomsFound = 0;
+
+        bool gameIsLoaded = false;
 
         List<(int, int)> entranceList;
 
@@ -113,7 +116,7 @@ namespace WpfApp1
             playerX = startPos.Item1;
             playerY = startPos.Item2;
 
-  
+
             discoveredTiles.Clear();
             discover_current_tile();
 
@@ -130,7 +133,6 @@ namespace WpfApp1
         {
             try
             {
-                // Stop existing timer if any
                 StopGameTimer();
 
                 remainingTime = TimeSpan.FromMinutes(1);
@@ -146,7 +148,6 @@ namespace WpfApp1
 
                     if (remainingTime <= TimeSpan.Zero)
                     {
-                        // stop and handle loss
                         StopGameTimer();
                         OnTimerElapsed();
                     }
@@ -172,12 +173,10 @@ namespace WpfApp1
             MessageBox.Show(
                 (lang == LANG.HUN) ? "Lejárt az idő. Vesztettél!" : "Time's up. You lost!");
 
-            // Re-enable reading a new map and disable further movement
             btnRead.IsEnabled = true;
 
             labyrinth = null;
 
-            // Clear canvas / player
             try { gameCanvas.Children.Clear(); } catch { }
         }
 
@@ -427,7 +426,6 @@ namespace WpfApp1
 
             discover_current_tile();
 
-            // In progressive mode, discover surrounding tiles
             if (progressiveFogOfWar)
             {
                 discover_surrounding_tiles(newX, newY);
@@ -453,7 +451,7 @@ namespace WpfApp1
                     int newX = x + dx;
                     int newY = y + dy;
 
-                    
+
                     if (newX >= 0 && newX < mapWidth && newY >= 0 && newY < mapHeight)
                     {
                         discoveredTiles.Add((newX, newY));
@@ -468,7 +466,7 @@ namespace WpfApp1
             {
                 Canvas.SetLeft(player, playerX * TILESIZE);
                 Canvas.SetTop(player, playerY * TILESIZE);
-            }catch(Exception ex)
+            } catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
                 MessageBox.Show((lang == LANG.HUN) ? "Először olvass be térképet!" : "Read a map first");
@@ -527,15 +525,119 @@ namespace WpfApp1
                     gameCanvas.Children.Add(tile);
                 }
             }
-
             if (player != null)
+            {
+                if (!gameCanvas.Children.Contains(player))
+                    gameCanvas.Children.Add(player);
+
+                Canvas.SetLeft(player, playerX * TILESIZE);
+                Canvas.SetTop(player, playerY * TILESIZE);
+            }
+
+            if (player != null && !gameIsLoaded)
             {
                 Canvas.SetLeft(player, playerX * TILESIZE);
                 Canvas.SetTop(player, playerY * TILESIZE);
                 gameCanvas.Children.Add(player);
             }
         }
+        private void load_game()
+        {
+            gameIsLoaded = true;
+            var res = load_file();
+            if(res != null)
+            {
+                playerX = res.Value.posX;
+                playerY = res.Value.posY;
 
+                currentMap = res.Value.map;
+                mapWidth = res.Value.width;
+                mapHeight = res.Value.height;
+
+                labyrinth = new Labyrinth(mapWidth, mapHeight, currentMap);
+                entranceList = locate_entrances(currentMap);
+                allRooms = labyrinth.get_room_number();
+
+
+                discoveredTiles.Clear();
+                visitedRooms.Clear();
+                discover_current_tile();
+
+                render_map(currentMap, mapWidth, mapHeight);
+
+                create_player();
+
+                lbFoundRooms.Content = (lang == LANG.HUN) ? $"{roomsFound} / {allRooms} megtalálva!" : $"Found: {roomsFound} / {allRooms}!";
+
+                try { gameCanvas.Focus(); Keyboard.Focus(gameCanvas); } catch { }
+                StartGameTimer();
+            }
+            else
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Hiba történt" : "Error");
+                return;
+            }
+        }
+
+        private (char[,] map, int width, int height, int posX, int posY)? load_file()
+        {
+            OpenFileDialog ofd = new OpenFileDialog
+            {
+                RestoreDirectory = true,
+                Filter = "SAV files (*.SAV)|*.SAV|All files (*.*)|*.*"
+            };
+
+            if (ofd.ShowDialog() != true)
+                return null;
+
+            string[] lines;
+
+            try
+            {
+                lines = File.ReadAllLines(ofd.FileName, Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show((lang == LANG.HUN) ? $"Hiba a fájl olvasásakor: {ex.Message}" : $"Error reading file: {ex.Message}");
+                return null;
+            }
+
+            if (lines.Length < 3)
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Érvénytelen mentési fájl (túl rövid)" : "Invalid save file (too short)");
+                return null;
+            }
+
+            int height = lines.Length - 2;
+            int width = 0;
+
+            for (int i = 0; i < height; i++)
+                if (lines[i].Length > width) width = lines[i].Length;
+
+            char[,] map = new char[height, width];
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    map[y, x] = (x < lines[y].Length) ? lines[y][x] : ' ';
+                }
+            }
+
+            string posLine = lines[lines.Length - 2].Trim();
+            var parts = posLine.Split(',');
+            if (parts.Length != 2) return null;
+
+            if (!int.TryParse(parts[0], out int posX)) return null;
+            if (!int.TryParse(parts[1], out int posY)) return null;
+
+            if (!int.TryParse(lines[lines.Length - 1].Trim(), out int loadedRoomsFound))
+                loadedRoomsFound = 0;
+
+            roomsFound = loadedRoomsFound;
+
+            return (map, width, height, posX, posY);
+        }
         (char[,] map, int width, int height)? read_map()
         {
             OpenFileDialog ofd = new OpenFileDialog
@@ -664,6 +766,15 @@ namespace WpfApp1
                 ? $"Fokozatos felfedezés"
                 : $"Progressive discovery";
 
+
+            btnSave.Content = (lang == LANG.HUN)
+                ? $"Mentéss"
+                : $"Save";
+
+            btnLoadGame.Content = (lang == LANG.HUN) ?
+                "JÁTÉK BETÖLTÉSE"
+                : "LOAD";
+
             update_directions(
                 labyrinth != null
                 ? labyrinth.Map[playerY, playerX]
@@ -733,6 +844,54 @@ namespace WpfApp1
                 render_map(currentMap, mapWidth, mapHeight);
                 update_player();
             }
+        }
+        private int save_game(char[,] map)
+        {
+            SaveFileDialog svd = new SaveFileDialog();
+            if(svd.ShowDialog() != true)
+            {
+                return 1;
+            }
+            svd.AddExtension = true;
+            svd.DefaultExt = ".SAV";
+            using (StreamWriter sr = new StreamWriter(svd.FileName))
+            {
+                for(int row = 0; row < labyrinth.Height; row++)
+                {
+                    for(int col = 0; col < labyrinth.Width; col++)
+                    {
+                        sr.Write(map[row, col]);
+                    }
+                    sr.WriteLine();
+                }
+
+                sr.WriteLine($"{playerX},{playerY}");
+                sr.WriteLine(roomsFound.ToString());
+            }
+            return 0;
+        }
+
+        private void btnSave_Click(object sender, RoutedEventArgs e)
+        {
+            if(labyrinth == null)
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Nem menthetsz megnyitás előtt" : "Cant save without opening");
+                return;
+            }
+            if (save_game(labyrinth.Map) == 1)
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Error a file kinyitása során" : "Error during saving");
+            }
+            else
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Elmentve" : "Saved");
+
+            }
+        }
+
+        private void btnLoadGame_Click(object sender, RoutedEventArgs e)
+        {
+            load_game();
         }
     }
 }
