@@ -113,7 +113,7 @@ namespace WpfApp1
             playerX = startPos.Item1;
             playerY = startPos.Item2;
 
-  
+
             discoveredTiles.Clear();
             discover_current_tile();
 
@@ -453,7 +453,7 @@ namespace WpfApp1
                     int newX = x + dx;
                     int newY = y + dy;
 
-                    
+
                     if (newX >= 0 && newX < mapWidth && newY >= 0 && newY < mapHeight)
                     {
                         discoveredTiles.Add((newX, newY));
@@ -468,7 +468,7 @@ namespace WpfApp1
             {
                 Canvas.SetLeft(player, playerX * TILESIZE);
                 Canvas.SetTop(player, playerY * TILESIZE);
-            }catch(Exception ex)
+            } catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
                 MessageBox.Show((lang == LANG.HUN) ? "Először olvass be térképet!" : "Read a map first");
@@ -526,6 +526,16 @@ namespace WpfApp1
 
                     gameCanvas.Children.Add(tile);
                 }
+            }
+            // Ensure the player rectangle is present on the canvas after redrawing tiles
+            if (player != null)
+            {
+                // If player was removed by Clear(), add it back so it's visible on top of tiles
+                if (!gameCanvas.Children.Contains(player))
+                    gameCanvas.Children.Add(player);
+
+                Canvas.SetLeft(player, playerX * TILESIZE);
+                Canvas.SetTop(player, playerY * TILESIZE);
             }
 
             if (player != null)
@@ -664,6 +674,11 @@ namespace WpfApp1
                 ? $"Fokozatos felfedezés"
                 : $"Progressive discovery";
 
+
+            btnSave.Content = (lang == LANG.HUN)
+                ? $"Mentéss"
+                : $"Save";
+
             update_directions(
                 labyrinth != null
                 ? labyrinth.Map[playerY, playerX]
@@ -732,6 +747,55 @@ namespace WpfApp1
             {
                 render_map(currentMap, mapWidth, mapHeight);
                 update_player();
+            }
+        }
+        private int load_game()
+        {
+            return 0;
+        }
+        private int save_game(char[,] map)
+        {
+            SaveFileDialog svd = new SaveFileDialog();
+            if(svd.ShowDialog() != true)
+            {
+                return 1;
+            }
+            svd.AddExtension = true;
+            svd.DefaultExt = ".SAV";
+            using (StreamWriter sr = new StreamWriter(svd.FileName))
+            {
+                for(int row = 0; row < labyrinth.Height; row++)
+                {
+                    for(int col = 0; col < labyrinth.Width; col++)
+                    {
+                        sr.Write(map[row, col]);
+                    }
+                    sr.Write("\n");
+                }
+
+                sr.WriteLine(playerX.ToString() + playerY.ToString());
+                if(roomsFound >= 1)
+                {
+                    sr.Write(1);
+                }
+                else
+                {
+                    sr.Write(0);
+                }
+            }
+            return 0;
+        }
+
+        private void btnSave_Click(object sender, RoutedEventArgs e)
+        {
+            if (save_game(labyrinth.Map) == 1)
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Error a file kinyitása során" : "Errpr during saving");
+            }
+            else
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Elmentve" : "Saved");
+
             }
         }
     }
