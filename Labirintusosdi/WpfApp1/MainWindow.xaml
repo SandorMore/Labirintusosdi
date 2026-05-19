@@ -40,7 +40,8 @@
             <RadioButton GroupName="Lang" x:Name="rbEng" Checked="rbEng_Checked"></RadioButton>
             <RadioButton GroupName="Lang" x:Name="rbHun" Checked="rbHun_Checked"></RadioButton>
 
-            <Button x:Name="btnSave" Click="btnSave_Click"></Button>
+            <Button x:Name="btnSave" Click="btnSave_Click">SAVE</Button>
+            <Button x:Name="btnLoadGame" Click="btnLoadGame_Click">LOAD GAME</Button>
         </StackPanel>
 
         <StackPanel Grid.Row="1" Grid.Column="0">

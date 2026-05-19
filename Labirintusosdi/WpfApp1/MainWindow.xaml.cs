@@ -527,10 +527,8 @@ namespace WpfApp1
                     gameCanvas.Children.Add(tile);
                 }
             }
-            // Ensure the player rectangle is present on the canvas after redrawing tiles
             if (player != null)
             {
-                // If player was removed by Clear(), add it back so it's visible on top of tiles
                 if (!gameCanvas.Children.Contains(player))
                     gameCanvas.Children.Add(player);
 
@@ -545,7 +543,82 @@ namespace WpfApp1
                 gameCanvas.Children.Add(player);
             }
         }
+        private void load_game()
+        {
+            var res = load_file();
+            if(res != null)
+            {
+                playerX = res.Value.posX;
+                playerY = res.Value.posY;
 
+                labyrinth.Map = res.Value.map;
+                labyrinth.Height = res.Value.height;
+                labyrinth.Width = res.Value.width;
+
+
+                render_map(res.Value.map, res.Value.width, res.Value.height);
+            }
+            else
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Hiba történt" : "Error");
+                return;
+            }
+            
+        }
+
+        private (char[,] map, int width, int height, int posX, int posY)? load_file()
+        {
+            int height;
+            int width = 0;
+            int posX;
+            int posY;
+
+            OpenFileDialog ofd = new OpenFileDialog
+            {
+                RestoreDirectory = true,
+                Filter = "SAV files (*.SAV)|*.SAV|All files (*.*)|*.*"
+            };
+
+            if (ofd.ShowDialog() != true)
+                return null;
+
+            string[] lines;
+
+            try
+            {
+                lines = File.ReadAllLines(ofd.FileName, Encoding.UTF8);
+            }
+            catch
+            {
+                return null;
+            }
+
+            if (lines.Length == 0)
+                return null;
+
+            height = lines.Length - 2;
+            width = lines[0].Length;
+
+            char[,] map = new char[height, width];
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    map[y, x] =
+                        (x < lines[y].Length)
+                        ? lines[y][x]
+                        : ' ';
+                }
+            }
+            posX = lines[lines.Length - 1][0];
+            posY = lines[lines.Length - 1][1];
+
+            lbFoundRooms.Content = roomsFound.ToString();
+            roomsFound = lines[lines.Length][0];
+
+            return (map, width, height, posX, posY);
+        }
         (char[,] map, int width, int height)? read_map()
         {
             OpenFileDialog ofd = new OpenFileDialog
@@ -679,6 +752,10 @@ namespace WpfApp1
                 ? $"Mentéss"
                 : $"Save";
 
+            btnLoadGame.Content = (lang == LANG.HUN) ?
+                "JÁTÉK BETÖLTÉSE"
+                : "LOAD";
+
             update_directions(
                 labyrinth != null
                 ? labyrinth.Map[playerY, playerX]
@@ -749,10 +826,6 @@ namespace WpfApp1
                 update_player();
             }
         }
-        private int load_game()
-        {
-            return 0;
-        }
         private int save_game(char[,] map)
         {
             SaveFileDialog svd = new SaveFileDialog();
@@ -776,7 +849,7 @@ namespace WpfApp1
                 sr.WriteLine(playerX.ToString() + playerY.ToString());
                 if(roomsFound >= 1)
                 {
-                    sr.Write(1);
+                    sr.Write(roomsFound);
                 }
                 else
                 {
@@ -788,15 +861,25 @@ namespace WpfApp1
 
         private void btnSave_Click(object sender, RoutedEventArgs e)
         {
+            if(labyrinth == null)
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Nem menthetsz megnyitás előtt" : "Cant save without opening");
+                return;
+            }
             if (save_game(labyrinth.Map) == 1)
             {
-                MessageBox.Show((lang == LANG.HUN) ? "Error a file kinyitása során" : "Errpr during saving");
+                MessageBox.Show((lang == LANG.HUN) ? "Error a file kinyitása során" : "Error during saving");
             }
             else
             {
                 MessageBox.Show((lang == LANG.HUN) ? "Elmentve" : "Saved");
 
             }
+        }
+
+        private void btnLoadGame_Click(object sender, RoutedEventArgs e)
+        {
+            load_game();
         }
     }
 }
