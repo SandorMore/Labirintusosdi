@@ -536,9 +536,17 @@ namespace WpfApp1
 
             if (player != null && !gameIsLoaded)
             {
-                Canvas.SetLeft(player, playerX * TILESIZE);
-                Canvas.SetTop(player, playerY * TILESIZE);
-                gameCanvas.Children.Add(player);
+                if (gameCanvas.Children.Contains(player))
+                {
+                    Canvas.SetLeft(player, playerX * TILESIZE);
+                    Canvas.SetTop(player, playerY * TILESIZE);
+
+                }
+                else
+                {
+                    gameCanvas.Children.Add(player);
+
+                }
             }
         }
         private void load_game()
@@ -584,11 +592,18 @@ namespace WpfApp1
             OpenFileDialog ofd = new OpenFileDialog
             {
                 RestoreDirectory = true,
-                Filter = "SAV files (*.SAV)|*.SAV|All files (*.*)|*.*"
+                Filter = "SAV files (*.SAV)|*.SAV",
+                Title = (lang == LANG.HUN) ? "Megnyitás (.SAV)" : "Open (.SAV)"
             };
 
             if (ofd.ShowDialog() != true)
                 return null;
+
+            if (!ofd.FileName.EndsWith(".SAV", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Kérlek .SAV fájlt válassz" : "Please select a .SAV file");
+                return null;
+            }
 
             string[] lines;
 
@@ -625,14 +640,59 @@ namespace WpfApp1
             }
 
             string posLine = lines[lines.Length - 2].Trim();
-            var parts = posLine.Split(',');
-            if (parts.Length != 2) return null;
+            string roomsLine = lines[lines.Length - 1].Trim();
 
-            if (!int.TryParse(parts[0], out int posX)) return null;
-            if (!int.TryParse(parts[1], out int posY)) return null;
+            // Extract integers from posLine robustly (supports "x,y" or "xy" or other separators)
+            List<int> nums = new List<int>();
+            StringBuilder numBuf = new StringBuilder();
 
-            if (!int.TryParse(lines[lines.Length - 1].Trim(), out int loadedRoomsFound))
-                loadedRoomsFound = 0;
+            foreach (char c in posLine)
+            {
+                if (char.IsDigit(c))
+                {
+                    numBuf.Append(c);
+                }
+                else
+                {
+                    if (numBuf.Length > 0)
+                    {
+                        if (int.TryParse(numBuf.ToString(), out int v)) nums.Add(v);
+                        numBuf.Clear();
+                    }
+                }
+            }
+
+            if (numBuf.Length > 0)
+            {
+                if (int.TryParse(numBuf.ToString(), out int v)) nums.Add(v);
+                numBuf.Clear();
+            }
+
+            int posX, posY;
+            if (nums.Count >= 2)
+            {
+                posX = nums[0];
+                posY = nums[1];
+            }
+            else if (posLine.Length >= 2 && char.IsDigit(posLine[0]) && char.IsDigit(posLine[1]))
+            {
+                posX = posLine[0] - '0';
+                posY = posLine[1] - '0';
+            }
+            else
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Érvénytelen pozíció a mentési fájlban" : "Invalid position in save file");
+                return null;
+            }
+
+            int loadedRoomsFound = 0;
+            if (!int.TryParse(roomsLine, out loadedRoomsFound))
+            {
+                if (roomsLine.Length > 0 && char.IsDigit(roomsLine[0]))
+                    loadedRoomsFound = roomsLine[0] - '0';
+                else
+                    loadedRoomsFound = 0;
+            }
 
             roomsFound = loadedRoomsFound;
 
@@ -847,14 +907,24 @@ namespace WpfApp1
         }
         private int save_game(char[,] map)
         {
-            SaveFileDialog svd = new SaveFileDialog();
-            if(svd.ShowDialog() != true)
+            SaveFileDialog svd = new SaveFileDialog()
+            {
+                Filter = "SAV files (*.SAV)|*.SAV",
+                DefaultExt = ".SAV",
+                AddExtension = true,
+                RestoreDirectory = true,
+                Title = (lang == LANG.HUN) ? "Mentés (.SAV)" : "Save (.SAV)"
+            };
+
+            if (svd.ShowDialog() != true)
             {
                 return 1;
             }
-            svd.AddExtension = true;
-            svd.DefaultExt = ".SAV";
-            using (StreamWriter sr = new StreamWriter(svd.FileName))
+
+            string fileName = svd.FileName;
+            if (!fileName.EndsWith(".SAV", StringComparison.OrdinalIgnoreCase))
+                fileName += ".SAV";
+            using (StreamWriter sr = new StreamWriter(fileName, false, Encoding.UTF8))
             {
                 for(int row = 0; row < labyrinth.Height; row++)
                 {
