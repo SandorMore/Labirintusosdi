@@ -13,6 +13,7 @@ using WpfApp1.Models;
 using WpfApp1.Utils;
 using System.Timers;
 using System.Windows.Threading;
+using System.Diagnostics;
 
 
 namespace WpfApp1
@@ -46,6 +47,8 @@ namespace WpfApp1
 
         int allRooms = 0;
         int roomsFound = 0;
+
+        bool gameIsLoaded = false;
 
         List<(int, int)> entranceList;
 
@@ -130,7 +133,6 @@ namespace WpfApp1
         {
             try
             {
-                // Stop existing timer if any
                 StopGameTimer();
 
                 remainingTime = TimeSpan.FromMinutes(1);
@@ -146,7 +148,6 @@ namespace WpfApp1
 
                     if (remainingTime <= TimeSpan.Zero)
                     {
-                        // stop and handle loss
                         StopGameTimer();
                         OnTimerElapsed();
                     }
@@ -172,12 +173,10 @@ namespace WpfApp1
             MessageBox.Show(
                 (lang == LANG.HUN) ? "Lejárt az idő. Vesztettél!" : "Time's up. You lost!");
 
-            // Re-enable reading a new map and disable further movement
             btnRead.IsEnabled = true;
 
             labyrinth = null;
 
-            // Clear canvas / player
             try { gameCanvas.Children.Clear(); } catch { }
         }
 
@@ -427,7 +426,6 @@ namespace WpfApp1
 
             discover_current_tile();
 
-            // In progressive mode, discover surrounding tiles
             if (progressiveFogOfWar)
             {
                 discover_surrounding_tiles(newX, newY);
@@ -536,7 +534,7 @@ namespace WpfApp1
                 Canvas.SetTop(player, playerY * TILESIZE);
             }
 
-            if (player != null)
+            if (player != null && !gameIsLoaded)
             {
                 Canvas.SetLeft(player, playerX * TILESIZE);
                 Canvas.SetTop(player, playerY * TILESIZE);
@@ -545,34 +543,44 @@ namespace WpfApp1
         }
         private void load_game()
         {
+            gameIsLoaded = true;
             var res = load_file();
             if(res != null)
             {
                 playerX = res.Value.posX;
                 playerY = res.Value.posY;
 
-                labyrinth.Map = res.Value.map;
-                labyrinth.Height = res.Value.height;
-                labyrinth.Width = res.Value.width;
+                currentMap = res.Value.map;
+                mapWidth = res.Value.width;
+                mapHeight = res.Value.height;
+
+                labyrinth = new Labyrinth(mapWidth, mapHeight, currentMap);
+                entranceList = locate_entrances(currentMap);
+                allRooms = labyrinth.get_room_number();
 
 
-                render_map(res.Value.map, res.Value.width, res.Value.height);
+                discoveredTiles.Clear();
+                visitedRooms.Clear();
+                discover_current_tile();
+
+                render_map(currentMap, mapWidth, mapHeight);
+
+                create_player();
+
+                lbFoundRooms.Content = (lang == LANG.HUN) ? $"{roomsFound} / {allRooms} megtalálva!" : $"Found: {roomsFound} / {allRooms}!";
+
+                try { gameCanvas.Focus(); Keyboard.Focus(gameCanvas); } catch { }
+                StartGameTimer();
             }
             else
             {
                 MessageBox.Show((lang == LANG.HUN) ? "Hiba történt" : "Error");
                 return;
             }
-            
         }
 
         private (char[,] map, int width, int height, int posX, int posY)? load_file()
         {
-            int height;
-            int width = 0;
-            int posX;
-            int posY;
-
             OpenFileDialog ofd = new OpenFileDialog
             {
                 RestoreDirectory = true,
@@ -588,16 +596,23 @@ namespace WpfApp1
             {
                 lines = File.ReadAllLines(ofd.FileName, Encoding.UTF8);
             }
-            catch
+            catch (Exception ex)
             {
+                MessageBox.Show((lang == LANG.HUN) ? $"Hiba a fájl olvasásakor: {ex.Message}" : $"Error reading file: {ex.Message}");
                 return null;
             }
 
-            if (lines.Length == 0)
+            if (lines.Length < 3)
+            {
+                MessageBox.Show((lang == LANG.HUN) ? "Érvénytelen mentési fájl (túl rövid)" : "Invalid save file (too short)");
                 return null;
+            }
 
-            height = lines.Length - 2;
-            width = lines[0].Length;
+            int height = lines.Length - 2;
+            int width = 0;
+
+            for (int i = 0; i < height; i++)
+                if (lines[i].Length > width) width = lines[i].Length;
 
             char[,] map = new char[height, width];
 
@@ -605,17 +620,21 @@ namespace WpfApp1
             {
                 for (int x = 0; x < width; x++)
                 {
-                    map[y, x] =
-                        (x < lines[y].Length)
-                        ? lines[y][x]
-                        : ' ';
+                    map[y, x] = (x < lines[y].Length) ? lines[y][x] : ' ';
                 }
             }
-            posX = lines[lines.Length - 1][0];
-            posY = lines[lines.Length - 1][1];
 
-            lbFoundRooms.Content = roomsFound.ToString();
-            roomsFound = lines[lines.Length][0];
+            string posLine = lines[lines.Length - 2].Trim();
+            var parts = posLine.Split(',');
+            if (parts.Length != 2) return null;
+
+            if (!int.TryParse(parts[0], out int posX)) return null;
+            if (!int.TryParse(parts[1], out int posY)) return null;
+
+            if (!int.TryParse(lines[lines.Length - 1].Trim(), out int loadedRoomsFound))
+                loadedRoomsFound = 0;
+
+            roomsFound = loadedRoomsFound;
 
             return (map, width, height, posX, posY);
         }
@@ -843,18 +862,11 @@ namespace WpfApp1
                     {
                         sr.Write(map[row, col]);
                     }
-                    sr.Write("\n");
+                    sr.WriteLine();
                 }
 
-                sr.WriteLine(playerX.ToString() + playerY.ToString());
-                if(roomsFound >= 1)
-                {
-                    sr.Write(roomsFound);
-                }
-                else
-                {
-                    sr.Write(0);
-                }
+                sr.WriteLine($"{playerX},{playerY}");
+                sr.WriteLine(roomsFound.ToString());
             }
             return 0;
         }
