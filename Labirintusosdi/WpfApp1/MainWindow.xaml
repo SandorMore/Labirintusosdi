@@ -1,0 +1,61 @@
+﻿<Window x:Class="WpfApp1.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp1"
+        mc:Ignorable="d"
+        Title="Labirintus Játék" Height="820" Width="1200"
+        Focusable="True"
+        >
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="4*"/>
+            <RowDefinition Height="1*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
+
+        <Canvas x:Name="gameCanvas" Background="Black" Focusable="True">
+            
+        </Canvas>
+
+        <StackPanel Grid.Column="1">
+            <Label x:Name="lbInfo"></Label>
+            <Label x:Name="lbTimer" HorizontalAlignment="Center"></Label>
+            <ListBox ScrollViewer.VerticalScrollBarVisibility="Visible" x:Name="lbMoves"></ListBox>
+        </StackPanel>
+        
+        <StackPanel Grid.Column="1">
+            <Label x:Name="lbTotalNumberOfRows"></Label>
+            <Label x:Name="lbDebug"></Label>
+        </StackPanel>
+        <StackPanel Grid.Row="1" Grid.Column="1">
+            <Label x:Name="lbRead" HorizontalAlignment="Center"></Label>
+            <Button x:Name="btnRead" VerticalAlignment="Stretch" Cursor="Hand" BorderBrush="Black" Foreground="Black" Background="#FFB9B9B9" Click="Button_Click">READ</Button>
+
+            <Label x:Name="lbLanguage"></Label>
+            <RadioButton GroupName="Lang" x:Name="rbEng" Checked="rbEng_Checked"></RadioButton>
+            <RadioButton GroupName="Lang" x:Name="rbHun" Checked="rbHun_Checked"></RadioButton>
+
+            <Button x:Name="btnSave" Click="btnSave_Click">SAVE</Button>
+            <Button x:Name="btnLoadGame" Click="btnLoadGame_Click">LOAD GAME</Button>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Grid.Column="0">
+            <Label x:Name="lbDirectionsFromCurrent"></Label>
+            <Label x:Name="lbFoundRooms"></Label>
+
+            <CheckBox x:Name="btnProgressiveFog" 
+                  Content="Progressive discovery" 
+                  Checked="btnProgressiveFog_Checked" 
+                  Unchecked="btnProgressiveFog_Unchecked"
+                  IsThreeState="False"
+                  Margin="5"/>
+            
+            
+        </StackPanel>
+    </Grid>
+</Window>
