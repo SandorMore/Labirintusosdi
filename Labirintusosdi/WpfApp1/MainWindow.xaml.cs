@@ -1,19 +1,20 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using WpfApp1.Models;
 using WpfApp1.Utils;
-using System.Timers;
-using System.Windows.Threading;
-using System.Diagnostics;
+using static System.Net.WebRequestMethods;
 
 
 namespace WpfApp1
@@ -609,7 +610,7 @@ namespace WpfApp1
 
             try
             {
-                lines = File.ReadAllLines(ofd.FileName, Encoding.UTF8);
+                lines = System.IO.File.ReadAllLines(ofd.FileName, Encoding.UTF8);
             }
             catch (Exception ex)
             {
@@ -642,7 +643,6 @@ namespace WpfApp1
             string posLine = lines[lines.Length - 2].Trim();
             string roomsLine = lines[lines.Length - 1].Trim();
 
-            // Extract integers from posLine robustly (supports "x,y" or "xy" or other separators)
             List<int> nums = new List<int>();
             StringBuilder numBuf = new StringBuilder();
 
@@ -713,7 +713,7 @@ namespace WpfApp1
 
             try
             {
-                lines = File.ReadAllLines(ofd.FileName, Encoding.UTF8);
+                lines = System.IO.File.ReadAllLines(ofd.FileName, Encoding.UTF8);
             }
             catch
             {
@@ -756,19 +756,19 @@ namespace WpfApp1
 
             for (int x = 0; x < mapWidth; x++)
             {
-                if (map[0, x] == '║')
+                if (map[0, x] != '.' && map[0, x] != '╦' && map[0,x] != '╔' && map[0,x] != '╗' && map[0,x] != '═')
                     returnList.Add((x, 0));
 
-                if (map[mapHeight - 1, x] == '║')
+                if (map[0, mapHeight - 1] != '.' && map[0, mapHeight - 1] != '╦' && map[0, mapHeight - 1] != '╔' && map[0, mapHeight - 1] != '╗' && map[0, mapHeight -1 ] != '═')
                     returnList.Add((x, mapHeight - 1));
             }
 
             for (int y = 0; y < mapHeight; y++)
             {
-                if (map[y, 0] == '═')
+                if (map[y, 0] != '.' && map[y, 0] != '╔' && map[y,0] != '╠' && map[y, 0] != '║')
                     returnList.Add((0, y));
 
-                if (map[y, mapWidth - 1] == '═')
+                if (map[y, mapWidth - 1] != '.' && map[y, mapWidth - 1] != '╗' && map[y, mapWidth - 1] != '╣' && map[y, mapWidth - 1] != '║')
                     returnList.Add((mapWidth - 1, y));
             }
 
