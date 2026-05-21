@@ -61,8 +61,8 @@ namespace WpfApp1
         {
             InitializeComponent();
 
-            update_language();
-
+            Thread t = new Thread(update_language);
+            
             isLoaded = true;
 
             this.Loaded += (s, e) => Keyboard.Focus(this);
@@ -73,6 +73,11 @@ namespace WpfApp1
                 (lang == LANG.HUN)
                 ? "Ezekbe az irányokba indulhat: "
                 : "You can go towards: ";
+            
+            if(t.IsBackground == true)
+            {
+                t.Start();
+            }
         }
 
         (int, int) setup_game(List<(int, int)> entrances)
