@@ -1,13 +1,4 @@
-﻿using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+﻿using System.Windows;
 
 namespace LabyrinthEditor
 {
@@ -21,8 +12,14 @@ namespace LabyrinthEditor
         {
             InitializeComponent();
 
+            TileSelector.SelectedTileTypeChanged += OnSelectedTileTypeChanged;
+            TileSelector.SelectedTileType = MapCanvas.SelectedTileType;
         }
 
+        void OnSelectedTileTypeChanged(object? sender, TileType? tileType)
+        {
+            MapCanvas.SelectedTileType = tileType;
+        }
     }
 
     public record struct Position
@@ -44,7 +41,7 @@ namespace LabyrinthEditor
                 Direction.East  => new Position(x+1, y),
                 Direction.South => new Position(x, y+1),
                 Direction.West  => new Position(x-1, y),
-                _ => throw new ArgumentException(),
+                _ => throw new ArgumentException()
             };
         }
 
@@ -101,5 +98,16 @@ namespace LabyrinthEditor
         Wall,
         Path,
         Room,
+    }
+
+    public static class TileTypeExtensions
+    {
+        public static bool IsDirected(this TileType type) => type switch
+        {
+            TileType.Wall => false,
+            TileType.Path => true,
+            TileType.Room => true,
+            _ => false,
+        };
     }
 }

@@ -25,11 +25,11 @@
         </StackPanel>
 
         <Border Grid.Row="1" Grid.Column="1" BorderBrush="Black" BorderThickness="1">
-            <local:MapCanvas />
+            <local:MapCanvas x:Name="MapCanvas" />
         </Border>
 
         <Border Grid.Row="3" Grid.Column="1" BorderBrush="Black" BorderThickness="1">
-            <local:TileSelector />
+            <local:TileSelector x:Name="TileSelector" />
         </Border>
 
     </Grid>

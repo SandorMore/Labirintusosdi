@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Documents;
+﻿using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -28,6 +21,12 @@ namespace LabyrinthEditor
         private Action currentAction;
 
         private BitmapSource[] pathBitmaps;
+        private BitmapSource[] roomBitmaps;
+        private BitmapSource missingTextureBitmap;
+
+        private Color wallColor;
+        private Color pathColor;
+        private Color roomColor;
 
         enum Action
         {
@@ -41,12 +40,18 @@ namespace LabyrinthEditor
             Map = new();
             SelectedTileType = TileType.Path;
 
+            wallColor = Color.FromRgb(50, 50, 50);
+            pathColor = Colors.Gray;
+            roomColor = Colors.Yellow;
+
             MouseDown += OnMouseDown;
             MouseMove += OnMouseMove;
             MouseUp += OnMouseUp;
             MouseWheel += OnMouseWheel;
 
             pathBitmaps = MakePathBitmaps();
+            roomBitmaps = MakeRoomBitmaps();
+            missingTextureBitmap = MakeMissingTextureBitmap();
 
             RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.NearestNeighbor);
         }
@@ -86,15 +91,29 @@ namespace LabyrinthEditor
                     {
                         //drawingContext.DrawRectangle(Brushes.Gray, null, new Rect(Math.Max(0, transformX + x * CELL_SIZE * zoomScale), Math.Max(0, transformY + y * CELL_SIZE * zoomScale), Math.Clamp(Math.Min(Math.Abs(transformX+(x+1)*CELL_SIZE*zoomScale), Math.Abs(transformX-ActualWidth+x*CELL_SIZE*zoomScale)), 0, CELL_SIZE*zoomScale), Math.Clamp(Math.Min(Math.Abs(transformY+(y+1)*CELL_SIZE*zoomScale), Math.Abs(transformY-ActualHeight+y*CELL_SIZE*zoomScale)), 0, CELL_SIZE*zoomScale)));
 
-                        drawingContext.DrawRectangle(Brushes.Gray, null, new Rect(croppedLeft, croppedTop, croppedWidth, croppedHeight));
+                        drawingContext.DrawRectangle(new SolidColorBrush(wallColor), null, new Rect(croppedLeft, croppedTop, croppedWidth, croppedHeight));
                     }
 
-                    else if (Map[cellPos].type == TileType.Path)
+                    else if (Map[cellPos].type == TileType.Path || Map[cellPos].type == TileType.Room)
                     {
-                        BitmapSource bmp = pathBitmaps[Map[cellPos].directions ?? 0];
+                        BitmapSource[] bitmaps = Map[cellPos].type switch
+                        {
+                            TileType.Path => pathBitmaps,
+                            TileType.Room => roomBitmaps,
+                            _ => throw new ArgumentException()
+                        };
+
+                        BitmapSource bmp = bitmaps[Map[cellPos].directions ?? 0];
 
                         drawingContext.PushClip(new RectangleGeometry(new Rect(croppedLeft, croppedTop, croppedWidth, croppedHeight)));
                         drawingContext.DrawImage(bmp, new Rect(cellLeft, cellTop, actualCellSize, actualCellSize));
+                        drawingContext.Pop();
+                    }
+
+                    else // Unknown tile
+                    {
+                        drawingContext.PushClip(new RectangleGeometry(new Rect(croppedLeft, croppedTop, croppedWidth, croppedHeight)));
+                        drawingContext.DrawImage(missingTextureBitmap, new Rect(cellLeft, cellTop, actualCellSize, actualCellSize));
                         drawingContext.Pop();
                     }
                 }
@@ -129,7 +148,7 @@ namespace LabyrinthEditor
         {
             BitmapSource[] bitmaps = new BitmapSource[16];
 
-            BitmapPalette palette = new BitmapPalette([Colors.Black, Colors.Gray]);
+            BitmapPalette palette = new BitmapPalette([wallColor, pathColor]);
 
             for (int i = 0; i < 16; ++i)
             {
@@ -138,48 +157,115 @@ namespace LabyrinthEditor
                 bool s = (i & (byte)Direction.South) != 0;
                 bool w = (i & (byte)Direction.West ) != 0;
 
-                WriteableBitmap bmp = new WriteableBitmap(8, 8, 96, 96, PixelFormats.Indexed1, palette);
+                WriteableBitmap bmp = new WriteableBitmap(4, 4, 96, 96, PixelFormats.Indexed1, palette);
 
-                byte[] bytes = new byte[8]
+                byte[] bytes = new byte[4]
                 {
                     0b00000000,
-                    0b00000000,
-                    0b00111100,
-                    0b00111100,
-                    0b00111100,
-                    0b00111100,
-                    0b00000000,
+                    0b01100000,
+                    0b01100000,
                     0b00000000,
                 };
 
                 if (n) {
-                    bytes[0] |= 0b00111100;
-                    bytes[1] |= 0b00111100;
+                    bytes[0] |= 0b01100000;
                 }
                 if (e) {
-                    bytes[2] |= 0b00000011;
-                    bytes[3] |= 0b00000011;
-                    bytes[4] |= 0b00000011;
-                    bytes[5] |= 0b00000011;
+                    bytes[1] |= 0b00010000;
+                    bytes[2] |= 0b00010000;
                 }
                 if (s) {
-                    bytes[6] |= 0b00111100;
-                    bytes[7] |= 0b00111100;
+                    bytes[3] |= 0b01100000;
                 }
                 if (w) {
-                    bytes[2] |= 0b11000000;
-                    bytes[3] |= 0b11000000;
-                    bytes[4] |= 0b11000000;
-                    bytes[5] |= 0b11000000;
+                    bytes[1] |= 0b10000000;
+                    bytes[2] |= 0b10000000;
                 }
 
-                bmp.WritePixels(new Int32Rect(0, 0, 8, 8), bytes, 1, 0);
+                bmp.WritePixels(new Int32Rect(0, 0, 4, 4), bytes, 1, 0);
                 bmp.Freeze();
 
                 bitmaps[i] = bmp;
             }
 
             return bitmaps;
+        }
+
+        BitmapSource[] MakeRoomBitmaps()
+        {
+            BitmapSource[] bitmaps = new BitmapSource[16];
+
+            BitmapPalette palette = new BitmapPalette([wallColor, pathColor, roomColor]);
+
+            for (int i = 0; i < 16; ++i)
+            {
+                bool n = (i & (byte)Direction.North) != 0;
+                bool e = (i & (byte)Direction.East) != 0;
+                bool s = (i & (byte)Direction.South) != 0;
+                bool w = (i & (byte)Direction.West) != 0;
+
+                WriteableBitmap bmp = new WriteableBitmap(8, 8, 96, 96, PixelFormats.Indexed2, palette);
+
+                byte[] bytes = new byte[16]
+                {
+                    0b00000000,0b00000000,
+                    0b00000000,0b00000000,
+                    0b00000101,0b01010000,
+                    0b00000110,0b10010000,
+                    0b00000110,0b10010000,
+                    0b00000101,0b01010000,
+                    0b00000000,0b00000000,
+                    0b00000000,0b00000000,
+                };
+
+                if (n)
+                {
+                    bytes[0] |= 0b00000101; bytes[1] |= 0b01010000;
+                    bytes[2] |= 0b00000101; bytes[3] |= 0b01010000;
+                }
+                if (e)
+                {
+                    bytes[5]  |= 0b00000101;
+                    bytes[7]  |= 0b00000101;
+                    bytes[9]  |= 0b00000101;
+                    bytes[11] |= 0b00000101;
+                }
+                if (s)
+                {
+                    bytes[12] |= 0b00000101; bytes[13] |= 0b01010000;
+                    bytes[14] |= 0b00000101; bytes[15] |= 0b01010000;
+                }
+                if (w)
+                {
+                    bytes[4]  |= 0b01010000;
+                    bytes[6]  |= 0b01010000;
+                    bytes[8]  |= 0b01010000;
+                    bytes[10] |= 0b01010000;
+                }
+
+                bmp.WritePixels(new Int32Rect(0, 0, 8, 8), bytes, 2, 0);
+                bmp.Freeze();
+
+                bitmaps[i] = bmp;
+            }
+
+            return bitmaps;
+        }
+
+        BitmapSource MakeMissingTextureBitmap()
+        {
+            WriteableBitmap bmp = new WriteableBitmap(2, 2, 96, 96, PixelFormats.Indexed1, new BitmapPalette([Colors.Black, Colors.Magenta]));
+
+            byte[] bytes = new byte[2]
+            {
+                0b01000000,
+                0b10000000,
+            };
+
+            bmp.WritePixels(new Int32Rect(0, 0, 2, 2), bytes, 1, 0);
+            bmp.Freeze();
+
+            return bmp;
         }
 
         Position ScreenToGrid(Point p)
@@ -192,7 +278,7 @@ namespace LabyrinthEditor
             );
         }
 
-        bool PlaceTile(TileType? tileType, Position position, byte? directions)
+        bool PlaceTileRaw(TileType? tileType, Position position, byte? directions)
         {
             bool changedTile = false;
 
@@ -202,7 +288,7 @@ namespace LabyrinthEditor
             }
             else
             {
-                Tile newTile = new Tile(tileType.Value, directions);
+                Tile newTile = new Tile(tileType.Value, tileType.Value.IsDirected() ? directions : null);
                 changedTile = !Map.ContainsKey(position) || Map[position] != newTile;
                 Map[position] = newTile;
             }
@@ -213,6 +299,34 @@ namespace LabyrinthEditor
             }
 
             return changedTile;
+        }
+
+        bool PlaceTile(TileType? tileType, Position position, byte? directions)
+        {
+            bool changedTile = PlaceTileRaw(tileType, position, directions);
+            bool changedSurroundingTiles = false;
+
+            if (tileType == null || !tileType.Value.IsDirected()) directions = null;
+
+            foreach (Direction dir in Enum.GetValues(typeof(Direction)))
+            {
+                Position nPos = position.NeighourAt(dir);
+
+                if (Map.ContainsKey(nPos) && Map[nPos].type.IsDirected())
+                {
+                    byte oldDirections = Map[nPos].directions ?? 0;
+                    Map[nPos] = Map[nPos] with { directions = ((directions ?? 0) & (byte)dir) != 0 ? (byte)(oldDirections | (byte)dir.Opposite()) : (byte)(oldDirections & ~(byte)dir.Opposite()) };
+
+                    changedSurroundingTiles = true;
+                }
+            }
+
+            if (changedSurroundingTiles)
+            {
+                InvalidateVisual();
+            }
+
+            return changedTile || changedSurroundingTiles;
         }
 
         private void OnMouseDown(object sender, MouseButtonEventArgs e)
@@ -234,8 +348,7 @@ namespace LabyrinthEditor
 
                 Position currentCellPos = ScreenToGrid(e.GetPosition(this));
 
-                if (!Map.ContainsKey(currentCellPos)  || Map[currentCellPos].type != SelectedTileType)
-                    PlaceTile(SelectedTileType, currentCellPos, null);
+                PlaceTile(SelectedTileType, currentCellPos, Map.ContainsKey(currentCellPos) ? Map[currentCellPos].directions : null);
             }
 
             else if (e.ChangedButton == MouseButton.Right)
@@ -243,6 +356,7 @@ namespace LabyrinthEditor
                 MessageBox.Show($"Test");
             }
 
+            e.Handled = true;
         }
 
         private void OnMouseMove(object sender, MouseEventArgs e)
@@ -265,25 +379,19 @@ namespace LabyrinthEditor
 
                 Direction? cameFrom = lastCellPos.DirectionTo(currentCellPos);
 
-                if (cameFrom != null && Map.ContainsKey(lastCellPos) && Map[lastCellPos].type == SelectedTileType)
+                if (cameFrom != null && Map.ContainsKey(lastCellPos) && Map[lastCellPos].type.IsDirected())
                 {
-                    if (Map.ContainsKey(currentCellPos))
-                    {
-                        PlaceTile(SelectedTileType, currentCellPos, (byte)((Map[currentCellPos].directions ?? 0) | (byte)DirectionExtensions.Opposite(cameFrom.Value)));
-                    } else
-                    {
-                        PlaceTile(SelectedTileType, currentCellPos, (byte)DirectionExtensions.Opposite(cameFrom.Value));
-                    }
-
-                    PlaceTile(SelectedTileType, lastCellPos, (byte)((Map[lastCellPos].directions ?? 0) | (byte)cameFrom.Value));
+                    PlaceTile(SelectedTileType, currentCellPos, Map.ContainsKey(currentCellPos) ? (byte)((Map[currentCellPos].directions ?? 0) | (byte)cameFrom.Value.Opposite()) : (byte)cameFrom.Value.Opposite());
                 }
                 else
                 {
-                    PlaceTile(SelectedTileType, lastCellPos, Map.ContainsKey(currentCellPos) ? Map[currentCellPos].directions : null);
+                    PlaceTile(SelectedTileType, currentCellPos, Map.ContainsKey(currentCellPos) ? Map[currentCellPos].directions : null);
                 }
 
                 lastMousePos = mousePos;
             }
+
+            e.Handled = true;
         }
 
         private void OnMouseUp(object sender, MouseButtonEventArgs e)
@@ -293,6 +401,8 @@ namespace LabyrinthEditor
                 currentAction = Action.None;
                 ReleaseMouseCapture();
             }
+
+            e.Handled = true;
         }
 
         private void OnMouseWheel(object sender, MouseWheelEventArgs e)
@@ -306,6 +416,8 @@ namespace LabyrinthEditor
             zoomScale = Math.Clamp(zoomScale * factor, 0.1, 20.0);
 
             InvalidateVisual();
+
+            e.Handled = true;
         }
     }
 }

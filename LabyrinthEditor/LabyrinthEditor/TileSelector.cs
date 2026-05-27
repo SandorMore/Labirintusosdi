@@ -1,24 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Media.Media3D;
 
 namespace LabyrinthEditor
 {
     public class TileSelector : FrameworkElement
     {
+        public TileType? SelectedTileType {
+            get => selectedTileIndex < SelectableTileTypes.Length ? SelectableTileTypes[selectedTileIndex] : null;
+            set => selectedTileIndex = (uint)Array.FindIndex(SelectableTileTypes, x => x==value);
+        }
+        public TileType?[] SelectableTileTypes { get; set; }
+
+        public event EventHandler<TileType?>? SelectedTileTypeChanged;
+
+        private uint selectedTileIndex;
+
         public TileSelector()
         {
+            SelectableTileTypes = Enum.GetValues<TileType>().Cast<TileType?>().Append(null).ToArray();
+
             MouseDown += OnMouseDown;
-            //MouseMove += OnMouseMove;
-            //MouseUp += OnMouseUp;
-            //MouseWheel += OnMouseWheel;
+            MouseWheel += OnMouseWheel;
 
             RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.NearestNeighbor);
             RenderOptions.SetEdgeMode(this, EdgeMode.Aliased);
@@ -32,12 +36,12 @@ namespace LabyrinthEditor
 
             //drawingContext.DrawRectangle(Brushes.Red, null, new Rect(0, 0, 10, 10));
 
-            TileType[] tileTypes = Enum.GetValues<TileType>();
-            for (int i=0; i<tileTypes.Length; ++i)
+            
+            for (int i=0; i<SelectableTileTypes.Length; ++i)
             {
                 BitmapSource bmp;
 
-                if (tileTypes[i] == TileType.Wall)
+                if (SelectableTileTypes[i] == TileType.Wall)
                 {
                     WriteableBitmap wb = new WriteableBitmap(16, 16, 96, 96, PixelFormats.Indexed1, new BitmapPalette([Colors.Gray, Colors.Brown]));
 
@@ -75,7 +79,7 @@ namespace LabyrinthEditor
                     bmp = wb;
                 }
 
-                else if (tileTypes[i] == TileType.Path)
+                else if (SelectableTileTypes[i] == TileType.Path)
                 {
                     WriteableBitmap wb = new WriteableBitmap(256, 256, 96, 96, PixelFormats.Indexed4, new BitmapPalette([Colors.LightBlue, Colors.White, Colors.Gray, Colors.Black, Colors.Green]));
 
@@ -106,7 +110,7 @@ namespace LabyrinthEditor
                                 byteToWrite = 2;
 
 
-                            bytes[row * 128 + col / 2] |= (byte)(byteToWrite << 4 - col % 2 * 4);
+                            bytes[row * 128 + col / 2] |= (byte)(byteToWrite << (1 - col % 2) * 4);
                         }
                     }
 
@@ -116,17 +120,39 @@ namespace LabyrinthEditor
                     bmp = wb;
                 }
 
-                //else if (tileTypes[i] == TileType.Room)
-                //{
-                //    WriteableBitmap wb = new WriteableBitmap(16, 16, 96, 96, PixelFormats.Indexed1, new BitmapPalette([Colors.White, Colors.Black]));
+                else if (SelectableTileTypes[i] == TileType.Room) // Csak ideiglenes kinézet, majd ha sok időm lesz csinálok jobbat
+                {
+                    WriteableBitmap wb = new WriteableBitmap(16, 16, 96, 96, PixelFormats.Indexed2, new BitmapPalette([Colors.DimGray, Colors.Black, Colors.Gold]));
 
-                //    byte[] bytes = new byte[32];
+                    byte[] bytes = new byte[64];
 
-                //    wb.WritePixels(new Int32Rect(0, 0, 16, 16), bytes, 2, 0);
-                //    wb.Freeze();
+                    for (int x = 0; x < 16; ++x)
+                    {
+                        for (int y = 0; y < 16; ++y)
+                        {
+                            double dx = Math.Abs(x - 7.5);
+                            double dy = Math.Abs(y - 7.5);
 
-                //    bmp = wb;
-                //}
+                            int maxD = 6;
+                            int minD = 2;
+
+                            if (dx > maxD || dy > maxD) continue;
+
+                            if (dx > minD || dy > minD)
+                            {
+                                bytes[y * 4 + x / 4] |= (byte)(1 << (3 - x % 4) * 2);
+                                continue;
+                            }
+
+                            bytes[y * 4 + x / 4] |= (byte)(2 << (3 - x % 4) * 2);
+                        }
+                    }
+
+                    wb.WritePixels(new Int32Rect(0, 0, 16, 16), bytes, 4, 0);
+                    wb.Freeze();
+
+                    bmp = wb;
+                }
 
                 else // Unknown tile / remove
                 {
@@ -154,15 +180,49 @@ namespace LabyrinthEditor
                 }
 
                 drawingContext.DrawImage(bmp, new Rect(i * ActualHeight, 0, ActualHeight, ActualHeight));
+
+                double borderThickness = 4;
+                if (SelectableTileTypes[i] == SelectedTileType)
+                {
+                    drawingContext.DrawRectangle(null, new Pen(Brushes.DarkRed, borderThickness), new Rect(i * ActualHeight + borderThickness/2, borderThickness/2, ActualHeight - borderThickness, ActualHeight - borderThickness));
+                }
             }
 
             drawingContext.Pop();
         }
 
+        protected virtual void OnSelectedTileTypeChanged(TileType? tileType)
+        {
+            SelectedTileTypeChanged?.Invoke(this, tileType);
+            InvalidateVisual();
+        }
 
         private void OnMouseDown(object sender, MouseButtonEventArgs e)
         {
+            Point mousePos = e.GetPosition(this);
 
+            uint clickedTileIndex = (uint)(mousePos.X / ActualHeight);
+
+            if (clickedTileIndex < SelectableTileTypes.Length)
+            {
+                selectedTileIndex = clickedTileIndex;
+                OnSelectedTileTypeChanged(SelectedTileType);
+            }
+
+            e.Handled = true;
+        }
+
+        private void OnMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            uint newTileIndex = (uint)(selectedTileIndex + (e.Delta > 0 ? 1 : -1));
+
+            if (newTileIndex < SelectableTileTypes.Length)
+            {
+                selectedTileIndex = newTileIndex;
+                OnSelectedTileTypeChanged(SelectedTileType);
+            }
+
+            e.Handled = true;
         }
     }
 }
