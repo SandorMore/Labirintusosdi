@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Labirintus – bemutató</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1 data-i18n="hero.title">Labirintus játék és pályaszerkesztő</h1>
+    <nav>
+      <a href="#overview" data-i18n="nav.overview">Áttekintés</a>
+      <a href="#game" data-i18n="nav.game">Játék</a>
+      <a href="#symbols" data-i18n="nav.symbols">Pálya jelei</a>
+      <a href="#editor" data-i18n="nav.editor">Szerkesztő</a>
+      <a href="#workflow" data-i18n="nav.workflow">Összekötés</a>
+    </nav>
+    <label class="lang">
+      <span data-i18n="lang.label">Nyelv</span>
+      <select id="lang" aria-label="Language"></select>
+    </label>
+  </header>
+
+  <main>
+    <section class="hero" id="overview">
+      <p data-i18n="hero.lead">Két egyszerű Windows-program…</p>
+
+      <h2 data-i18n="overview.title">Mi ez a projekt?</h2>
+      <p data-i18n="overview.p1">A Labirintus egy szöveges…</p>
+      <p data-i18n="overview.p2">A Labirintus szerkesztő…</p>
+      <h3 data-i18n="overview.listTitle">Röviden</h3>
+      <ul>
+        <li data-i18n="overview.li1">Játék: felfedezés…</li>
+        <li data-i18n="overview.li2">Szerkesztő: pályarajzolás…</li>
+        <li data-i18n="overview.li3">Közös nyelv: .SAV fájl…</li>
+      </ul>
+    </section>
+
+    <section id="game">
+      <h2 data-i18n="game.title">Hogyan működik a játék?</h2>
+      <figure>
+        <img src="images/game.png" width="800" height="450" data-i18n-alt="game.imgAlt" alt="">
+        <figcaption data-i18n="game.imgAlt"></figcaption>
+      </figure>
+
+      <h3 data-i18n="game.goal.title">Cél</h3>
+      <p data-i18n="game.goal.text">Indulj egy véletlenszerű bejáratról…</p>
+
+      <h3 data-i18n="game.controls.title">Irányítás</h3>
+      <p data-i18n="game.controls.text">W – fel, S – le…</p>
+
+      <h3 data-i18n="game.timer.title">Idő</h3>
+      <p data-i18n="game.timer.text">Induláskor egy perc…</p>
+
+      <h3 data-i18n="game.fog.title">Felfedezés (köd)</h3>
+      <p data-i18n="game.fog.text">Bekapcsolhatod a „ködöt”…</p>
+
+      <h3 data-i18n="game.files.title">Fájlok a játékban</h3>
+      <ul>
+        <li data-i18n="game.files.read">Olvasás: egyszerű .txt…</li>
+        <li data-i18n="game.files.load">Játék betöltése: .SAV…</li>
+        <li data-i18n="game.files.save">Mentés: aktuális állapot…</li>
+      </ul>
+    </section>
+
+    <section id="symbols">
+      <h2 data-i18n="symbols.title">Mit jelentenek a jelek a pályán?</h2>
+      <p data-i18n="symbols.intro">A pálya szöveges karakterekből áll…</p>
+      <ul>
+        <li data-i18n="symbols.passages">Járatok: vonalak…</li>
+        <li data-i18n="symbols.room">Kincs / terem: █…</li>
+        <li data-i18n="symbols.exit">Kijárat: a pálya szélén…</li>
+        <li data-i18n="symbols.empty">Üres / fal: üres hely…</li>
+      </ul>
+    </section>
+
+    <section id="editor">
+      <h2 data-i18n="editor.title">Hogyan működik a pályaszerkesztő?</h2>
+      <figure>
+        <img src="images/editor.png" width="800" height="450" data-i18n-alt="editor.imgAlt" alt="">
+        <figcaption data-i18n="editor.imgAlt"></figcaption>
+      </figure>
+
+      <h3 data-i18n="editor.tiles.title">Csempék</h3>
+      <figure>
+        <img class="tiles-img" src="images/tile-selector.png" width="400" height="80" data-i18n-alt="editor.tiles.imgAlt" alt="">
+        <figcaption data-i18n="editor.tiles.imgAlt"></figcaption>
+      </figure>
+      <ul>
+        <li data-i18n="editor.tiles.wall">Fal – akadály…</li>
+        <li data-i18n="editor.tiles.path">Járat – húzással rajzolod…</li>
+        <li data-i18n="editor.tiles.room">Kincs (terem) – csak járatra…</li>
+        <li data-i18n="editor.tiles.player">Kezdőpont – csak egy lehet…</li>
+        <li data-i18n="editor.tiles.erase">Törlés – eltávolítja…</li>
+      </ul>
+
+      <h3 data-i18n="editor.draw.title">Rajzolás és nézet</h3>
+      <ul>
+        <li data-i18n="editor.draw.left">Bal egérgomb…</li>
+        <li data-i18n="editor.draw.middle">Középső gomb…</li>
+        <li data-i18n="editor.draw.wheel">Görgő…</li>
+        <li data-i18n="editor.draw.select">Csempeválasztó…</li>
+      </ul>
+
+      <h3 data-i18n="editor.export.title">Exportálás</h3>
+      <p data-i18n="editor.export.text">Az Exportálás gomb…</p>
+    </section>
+
+    <section id="workflow">
+      <h2 data-i18n="workflow.title">Szerkesztő → játék</h2>
+      <ol>
+        <li data-i18n="workflow.step1">1. Rajzold meg…</li>
+        <li data-i18n="workflow.step2">2. Exportálás…</li>
+        <li data-i18n="workflow.step3">3. A játékban…</li>
+      </ol>
+      <p><em data-i18n="workflow.tip">Tipp: először járatokkal…</em></p>
+    </section>
+  </main>
+  
+  <script src="app.js"></script>
+</body>
+</html>

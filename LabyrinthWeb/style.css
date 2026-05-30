@@ -1,0 +1,43 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  color: #222;
+  background: #fafafa;
+}
+header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  background: #fff;
+}
+header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+nav { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+nav a { color: #333; text-decoration: none; }
+nav a:hover { text-decoration: underline; }
+.lang { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+.lang select { padding: 0.25rem 0.5rem; }
+main { max-width: 42rem; margin: 0 auto; padding: 1.5rem; }
+section { margin-bottom: 2.5rem; }
+h2 { font-size: 1.25rem; margin: 0 0 0.75rem; }
+h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
+p { margin: 0 0 0.75rem; }
+ul { margin: 0; padding-left: 1.25rem; }
+li { margin-bottom: 0.35rem; }
+.hero { margin-bottom: 2rem; }
+.hero p { font-size: 1.05rem; color: #444; }
+figure { margin: 1rem 0; }
+img { max-width: 100%; height: auto; border: 1px solid #ddd; }
+figcaption { font-size: 0.85rem; color: #666; margin-top: 0.35rem; }
+.tiles-img { max-width: 20rem; }
+footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  padding: 2rem 1rem;
+  border-top: 1px solid #eee;
+}
