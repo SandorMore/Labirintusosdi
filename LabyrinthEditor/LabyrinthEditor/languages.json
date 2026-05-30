@@ -1,0 +1,50 @@
+{
+  "en": {
+    "languageName": "English",
+    "window.title": "Labyrinth Editor",
+    "button.export": "Export",
+    "label.language": "Language",
+
+    "export.title": "Export",
+    "export.dialogTitle": "Export map",
+    "export.filter": "SAV file (*.SAV)|*.SAV|Text file (*.txt)|*.txt|All files (*.*)|*.*",
+    "export.saveError": "Error while saving: {0}",
+    "export.empty": "The map is empty, there is nothing to export.",
+    "export.noPlayer": "There is no player start on the map. Place a player tile!",
+
+    "player.title": "Player",
+    "player.alreadyExists": "There is already a player on the map! There can only be one player start.",
+
+    "placement.title": "Placing tile",
+    "placement.needsPath": "Treasure and player can only be placed on an already drawn path!",
+
+    "solve.unreachableTreasure": "There is a treasure the player cannot pick up (not reachable from the start).",
+    "solve.noExit": "The map has no reachable exit. There must be a reachable '═' or '║' passage on the edge of the map, facing the correct direction.",
+
+    "error.unknown": "Unknown error."
+  },
+  "hu": {
+    "languageName": "Magyar",
+    "window.title": "Labirintus szerkesztő",
+    "button.export": "Exportálás",
+    "label.language": "Nyelv",
+
+    "export.title": "Exportálás",
+    "export.dialogTitle": "Pálya exportálása",
+    "export.filter": "SAV fájl (*.SAV)|*.SAV|Szöveges fájl (*.txt)|*.txt|Minden fájl (*.*)|*.*",
+    "export.saveError": "Hiba a mentéskor: {0}",
+    "export.empty": "A pálya üres, nincs mit exportálni.",
+    "export.noPlayer": "Nincs játékos kezdőpont a pályán. Helyezz el egy játékos csempét!",
+
+    "player.title": "Játékos",
+    "player.alreadyExists": "Már van egy játékos a pályán! Csak egy játékos kezdőpont lehet.",
+
+    "placement.title": "Csempe lerakása",
+    "placement.needsPath": "Kincset és játékost csak már lerakott járatra (Path) lehet lerakni!",
+
+    "solve.unreachableTreasure": "Van olyan kincs, amit a játékos nem tud felszedni (nem érhető el a kezdőpontból).",
+    "solve.noExit": "A pályának nincs elérhető kijárata. A pálya szélén kell lennie egy elérhető '═' vagy '║' átjárónak a megfelelő irányba.",
+
+    "error.unknown": "Ismeretlen hiba."
+  }
+}

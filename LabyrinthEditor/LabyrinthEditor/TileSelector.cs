@@ -154,6 +154,35 @@ namespace LabyrinthEditor
                     bmp = wb;
                 }
 
+                else if (SelectableTileTypes[i] == TileType.Player)
+                {
+                    WriteableBitmap wb = new WriteableBitmap(16, 16, 96, 96, PixelFormats.Indexed2, new BitmapPalette([Colors.DimGray, Colors.Black, Colors.LimeGreen]));
+
+                    byte[] bytes = new byte[64];
+
+                    for (int x = 0; x < 16; ++x)
+                    {
+                        for (int y = 0; y < 16; ++y)
+                        {
+                            double dx = x - 7.5;
+                            double dy = y - 7.5;
+                            double dist = Math.Sqrt(dx * dx + dy * dy);
+
+                            if (dist > 6) continue;
+
+                            // Telt kör: zöld belső, fekete körvonal — vizuálisan elkülönül a terem (Room) ikontól.
+                            int val = dist > 4.5 ? 1 : 2;
+
+                            bytes[y * 4 + x / 4] |= (byte)(val << (3 - x % 4) * 2);
+                        }
+                    }
+
+                    wb.WritePixels(new Int32Rect(0, 0, 16, 16), bytes, 4, 0);
+                    wb.Freeze();
+
+                    bmp = wb;
+                }
+
                 else // Unknown tile / remove
                 {
                     WriteableBitmap wb = new WriteableBitmap(16, 16, 96, 96, PixelFormats.Indexed1, new BitmapPalette([Colors.Gray, Colors.Red]));

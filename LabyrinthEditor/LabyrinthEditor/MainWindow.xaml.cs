@@ -1,4 +1,7 @@
-﻿using System.Windows;
+﻿using System.IO;
+using System.Text;
+using System.Windows;
+using Microsoft.Win32;
 
 namespace LabyrinthEditor
 {
@@ -8,17 +11,78 @@ namespace LabyrinthEditor
     public partial class MainWindow : Window
     {
 
+        // A nyelvválasztó listájának egy eleme: a nyelvkód és a megjelenített név.
+        private record LanguageOption(string Code, string Name);
+
         public MainWindow()
         {
             InitializeComponent();
 
             TileSelector.SelectedTileTypeChanged += OnSelectedTileTypeChanged;
             TileSelector.SelectedTileType = MapCanvas.SelectedTileType;
+
+            LanguageSelector.ItemsSource = Localization.AvailableLanguages
+                .Select(code => new LanguageOption(code, Localization.DisplayName(code)))
+                .ToList();
+            LanguageSelector.DisplayMemberPath = nameof(LanguageOption.Name);
+            LanguageSelector.SelectedValuePath = nameof(LanguageOption.Code);
+            LanguageSelector.SelectedValue = Localization.CurrentLanguage;
+
+            Localization.LanguageChanged += ApplyLanguage;
+            ApplyLanguage();
+        }
+
+        // Felülírja a felület szövegeit az aktuális nyelvnek megfelelően.
+        void ApplyLanguage()
+        {
+            Title = Localization.Get("window.title");
+            ExportButton.Content = Localization.Get("button.export");
+            LanguageLabel.Text = Localization.Get("label.language");
+        }
+
+        void OnLanguageSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (LanguageSelector.SelectedValue is string code)
+            {
+                Localization.CurrentLanguage = code;
+            }
         }
 
         void OnSelectedTileTypeChanged(object? sender, TileType? tileType)
         {
             MapCanvas.SelectedTileType = tileType;
+        }
+
+        void OnExportClick(object sender, RoutedEventArgs e)
+        {
+            string? content = MapCanvas.BuildExportContent(out string? error);
+
+            if (content == null)
+            {
+                MessageBox.Show(error ?? Localization.Get("error.unknown"), Localization.Get("export.title"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            SaveFileDialog dlg = new SaveFileDialog
+            {
+                Filter = Localization.Get("export.filter"),
+                DefaultExt = ".SAV",
+                FileName = "palya.SAV",
+                Title = Localization.Get("export.dialogTitle"),
+                RestoreDirectory = true,
+            };
+
+            if (dlg.ShowDialog() != true) return;
+
+            try
+            {
+                // BOM nélküli UTF-8, hogy a játék ReadAllLines hívása helyesen olvassa be.
+                File.WriteAllText(dlg.FileName, content, new UTF8Encoding(false));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(Localization.Get("export.saveError", ex.Message), Localization.Get("export.title"), MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 
@@ -98,6 +162,7 @@ namespace LabyrinthEditor
         Wall,
         Path,
         Room,
+        Player,
     }
 
     public static class TileTypeExtensions
@@ -107,6 +172,7 @@ namespace LabyrinthEditor
             TileType.Wall => false,
             TileType.Path => true,
             TileType.Room => true,
+            TileType.Player => true,
             _ => false,
         };
     }
