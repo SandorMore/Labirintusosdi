@@ -3,6 +3,7 @@
     "languageName": "English",
     "window.title": "Labyrinth Editor",
     "button.export": "Export",
+    "button.clear": "Clear",
     "label.language": "Language",
 
     "export.title": "Export",
@@ -27,6 +28,7 @@
     "languageName": "Magyar",
     "window.title": "Labirintus szerkesztő",
     "button.export": "Exportálás",
+    "button.clear": "Törlés",
     "label.language": "Nyelv",
 
     "export.title": "Exportálás",

@@ -11,8 +11,9 @@ namespace LabyrinthEditor
         const int CELL_SIZE = 20;
         const int GAP_SIZE = 2;
 
-        public TileType? SelectedTileType { get; set; }
+        public EditorOption SelectedEditorOption { get; set; }
         public Dictionary<Position, Tile> Map { get; private set; }
+        public Position? PlayerPos { get; private set; }
 
         double zoomScale = 1;
         double transformX = 0;
@@ -41,7 +42,7 @@ namespace LabyrinthEditor
         public MapCanvas()
         {
             Map = new();
-            SelectedTileType = TileType.Path;
+            SelectedEditorOption = new EditorOption { tool=EditorTool.PlaceTile, tileType=TileType.Path };
 
             wallColor = Color.FromRgb(50, 50, 50);
             pathColor = Colors.Gray;
@@ -99,15 +100,16 @@ namespace LabyrinthEditor
                         drawingContext.DrawRectangle(new SolidColorBrush(wallColor), null, new Rect(croppedLeft, croppedTop, croppedWidth, croppedHeight));
                     }
 
-                    else if (Map[cellPos].type == TileType.Path || Map[cellPos].type == TileType.Room || Map[cellPos].type == TileType.Player)
+                    else if (Map[cellPos].type == TileType.Path || Map[cellPos].type == TileType.Room)
                     {
                         BitmapSource[] bitmaps = Map[cellPos].type switch
                         {
                             TileType.Path => pathBitmaps,
                             TileType.Room => roomBitmaps,
-                            TileType.Player => playerBitmaps,
                             _ => throw new ArgumentException()
                         };
+
+                        if (PlayerPos != null && cellPos == PlayerPos) bitmaps = playerBitmaps;
 
                         BitmapSource bmp = bitmaps[Map[cellPos].directions ?? 0];
 
@@ -364,6 +366,11 @@ namespace LabyrinthEditor
 
             if (changedTile)
             {
+                if (PlayerPos != null && !IsValidPlayerPos(PlayerPos.Value))
+                {
+                    PlayerPos = null;
+                }
+
                 InvalidateVisual();
             }
 
@@ -385,7 +392,6 @@ namespace LabyrinthEditor
                 {
                     byte oldDirections = Map[nPos].directions ?? 0;
                     Map[nPos] = Map[nPos] with { directions = ((directions ?? 0) & (byte)dir) != 0 ? (byte)(oldDirections | (byte)dir.Opposite()) : (byte)(oldDirections & ~(byte)dir.Opposite()) };
-
                     changedSurroundingTiles = true;
                 }
             }
@@ -398,27 +404,33 @@ namespace LabyrinthEditor
             return changedTile || changedSurroundingTiles;
         }
 
-        // Igaz, ha már van játékos csempe a megadott pozíciótól eltérő helyen.
-        // Csak egy játékos kezdőpont lehet a pályán.
-        bool PlayerExistsElsewhere(Position pos)
+        void DoEditorOption(EditorOption option, Position cellPos, Direction? cameFrom)
         {
-            foreach ((Position p, Tile t) in Map)
+            if (option.tool == EditorTool.PlaceTile)
             {
-                if (t.type == TileType.Player && p != pos) return true;
+                if (cameFrom != null && Map.TryGetValue(cellPos.NeighourAt(cameFrom.Value.Opposite()), out Tile lastTile) && lastTile.type.IsDirected())
+                {
+                    PlaceTile(option.tileType, cellPos, Map.TryGetValue(cellPos, out Tile currentTile) ? (byte)((currentTile.directions ?? 0) | (byte)cameFrom.Value.Opposite()) : (byte)cameFrom.Value.Opposite());
+                }
+                else
+                {
+                    PlaceTile(option.tileType, cellPos, Map.TryGetValue(cellPos, out Tile currentTile) ? currentTile.directions : null);
+                }
             }
-            return false;
+
+            else if (option.tool == EditorTool.PlacePlayer)
+            {
+                if (IsValidPlayerPos(cellPos))
+                {
+                    PlayerPos = cellPos;
+                    InvalidateVisual();
+                }
+            }
         }
 
-        // Termet (Room) és játékost (Player) csak már lerakott járatra (Path) lehet lerakni.
-        // A többi csempetípus (és a törlés) bárhová kerülhet.
-        bool CanPlaceTileType(TileType? tileType, Position pos)
+        bool IsValidPlayerPos(Position position)
         {
-            if (tileType == TileType.Room || tileType == TileType.Player)
-            {
-                return Map.TryGetValue(pos, out Tile tile) && tile.type == TileType.Path;
-            }
-
-            return true;
+            return Map.TryGetValue(position, out Tile tile) && (tile.type == TileType.Path || tile.type == TileType.Room);
         }
 
         private void OnMouseDown(object sender, MouseButtonEventArgs e)
@@ -436,27 +448,11 @@ namespace LabyrinthEditor
             {
                 Position currentCellPos = ScreenToGrid(e.GetPosition(this));
 
-                if (SelectedTileType == TileType.Player && PlayerExistsElsewhere(currentCellPos))
-                {
-                    MessageBox.Show(Localization.Get("player.alreadyExists"),
-                        Localization.Get("player.title"), MessageBoxButton.OK, MessageBoxImage.Information);
-                    e.Handled = true;
-                    return;
-                }
-
-                if (!CanPlaceTileType(SelectedTileType, currentCellPos))
-                {
-                    MessageBox.Show(Localization.Get("placement.needsPath"),
-                        Localization.Get("placement.title"), MessageBoxButton.OK, MessageBoxImage.Information);
-                    e.Handled = true;
-                    return;
-                }
-
                 currentAction = Action.Draw;
                 lastMousePos = e.GetPosition(this);
                 CaptureMouse();
 
-                PlaceTile(SelectedTileType, currentCellPos, Map.ContainsKey(currentCellPos) ? Map[currentCellPos].directions : null);
+                DoEditorOption(SelectedEditorOption, currentCellPos, null);
             }
 
             else if (e.ChangedButton == MouseButton.Right)
@@ -485,32 +481,9 @@ namespace LabyrinthEditor
                 Position lastCellPos = ScreenToGrid(lastMousePos);
                 Position currentCellPos = ScreenToGrid(mousePos);
 
-                // Húzással se lehessen több játékost lerakni (csendben kihagyjuk, nincs üzenet).
-                if (SelectedTileType == TileType.Player && PlayerExistsElsewhere(currentCellPos))
-                {
-                    lastMousePos = mousePos;
-                    e.Handled = true;
-                    return;
-                }
-
-                // Termet és játékost csak meglévő járatra lehet lerakni (húzásnál csendben kihagyjuk).
-                if (!CanPlaceTileType(SelectedTileType, currentCellPos))
-                {
-                    lastMousePos = mousePos;
-                    e.Handled = true;
-                    return;
-                }
-
                 Direction? cameFrom = lastCellPos.DirectionTo(currentCellPos);
 
-                if (cameFrom != null && Map.ContainsKey(lastCellPos) && Map[lastCellPos].type.IsDirected())
-                {
-                    PlaceTile(SelectedTileType, currentCellPos, Map.ContainsKey(currentCellPos) ? (byte)((Map[currentCellPos].directions ?? 0) | (byte)cameFrom.Value.Opposite()) : (byte)cameFrom.Value.Opposite());
-                }
-                else
-                {
-                    PlaceTile(SelectedTileType, currentCellPos, Map.ContainsKey(currentCellPos) ? Map[currentCellPos].directions : null);
-                }
+                DoEditorOption(SelectedEditorOption, currentCellPos, cameFrom);
 
                 lastMousePos = mousePos;
             }
@@ -542,6 +515,13 @@ namespace LabyrinthEditor
             InvalidateVisual();
 
             e.Handled = true;
+        }
+
+        public void ClearCanvas()
+        {
+            Map.Clear();
+            PlayerPos = null;
+            InvalidateVisual();
         }
 
         // A járatcsempék irány-bitmaszkját (N/E/S/W) a játék által használt
@@ -588,7 +568,6 @@ namespace LabyrinthEditor
                     return RoomChar;
 
                 case TileType.Path:
-                case TileType.Player:
                     return DirectionsToChar.TryGetValue(tile.directions ?? 0, out string c) ? c : FillerChar;
 
                 default:
@@ -614,12 +593,8 @@ namespace LabyrinthEditor
             int minX = int.MaxValue, minY = int.MaxValue;
             int maxX = int.MinValue, maxY = int.MinValue;
 
-            Position? playerPos = null;
-
             foreach ((Position pos, Tile tile) in Map)
             {
-                if (tile.type == TileType.Player) playerPos = pos;
-
                 // A Wall csempék üresként ("") exportálódnak, ezért a befoglaló téglalapot
                 // sem feszíthetik ki – különben a pálya szélén lévő csupa-fal sorok/oszlopok
                 // üres sorként jelennének meg. Csak a tényleges tartalom (járat/terem/játékos)
@@ -632,7 +607,7 @@ namespace LabyrinthEditor
                 if (pos.y > maxY) maxY = pos.y;
             }
 
-            if (playerPos == null)
+            if (PlayerPos == null)
             {
                 error = Localization.Get("export.noPlayer");
                 return null;
@@ -641,12 +616,15 @@ namespace LabyrinthEditor
             // A pálya csak akkor exportálható, ha megcsinálható (van elérhető kijárat
             // és minden kincs felszedhető). A pálya szélét a tartalom befoglaló téglalapja
             // (minX..maxX, minY..maxY) határozza meg.
-            if (!ValidateSolvable(playerPos.Value, minX, minY, maxX, maxY, out error))
+            if (!ValidateSolvable(PlayerPos.Value, minX, minY, maxX, maxY, out error))
             {
                 return null;
             }
 
             StringBuilder sb = new StringBuilder();
+
+            Tile? playerTile = Map.ContainsKey(PlayerPos.Value) ? Map[PlayerPos.Value] : null;
+            if (playerTile != null) Map[PlayerPos.Value] = playerTile.Value with { type = TileType.Path };
 
             for (int y = minY; y <= maxY; ++y)
             {
@@ -657,8 +635,10 @@ namespace LabyrinthEditor
                 sb.Append("\r\n");
             }
 
+            if (playerTile != null) Map[PlayerPos.Value] = playerTile.Value;
+
             // A térkép origójához (bal felső sarok) viszonyított játékospozíció.
-            sb.Append($"{playerPos.Value.x - minX},{playerPos.Value.y - minY}\r\n");
+            sb.Append($"{PlayerPos.Value.x - minX},{PlayerPos.Value.y - minY}\r\n");
             sb.Append('0'); // felfedezett termek száma induláskor
 
             return sb.ToString();
@@ -689,6 +669,9 @@ namespace LabyrinthEditor
             while (queue.Count > 0)
             {
                 Position cur = queue.Dequeue();
+
+                if (!Map.ContainsKey(cur)) continue; // A balfasz AI ellenőrzés nélkül indexel
+
                 byte dirs = Map[cur].directions ?? 0;
 
                 foreach (Direction dir in Enum.GetValues<Direction>())

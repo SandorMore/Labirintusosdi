@@ -18,8 +18,8 @@ namespace LabyrinthEditor
         {
             InitializeComponent();
 
-            TileSelector.SelectedTileTypeChanged += OnSelectedTileTypeChanged;
-            TileSelector.SelectedTileType = MapCanvas.SelectedTileType;
+            TileSelector.SelectedEditorOptionChanged += OnSelectedEditorOptionChanged;
+            TileSelector.SelectedEditorOption = MapCanvas.SelectedEditorOption;
 
             LanguageSelector.ItemsSource = Localization.AvailableLanguages
                 .Select(code => new LanguageOption(code, Localization.DisplayName(code)))
@@ -37,6 +37,7 @@ namespace LabyrinthEditor
         {
             Title = Localization.Get("window.title");
             ExportButton.Content = Localization.Get("button.export");
+            ClearButton.Content = Localization.Get("button.clear");
             LanguageLabel.Text = Localization.Get("label.language");
         }
 
@@ -48,9 +49,9 @@ namespace LabyrinthEditor
             }
         }
 
-        void OnSelectedTileTypeChanged(object? sender, TileType? tileType)
+        void OnSelectedEditorOptionChanged(object? sender, EditorOption option)
         {
-            MapCanvas.SelectedTileType = tileType;
+            MapCanvas.SelectedEditorOption = option;
         }
 
         void OnExportClick(object sender, RoutedEventArgs e)
@@ -83,6 +84,11 @@ namespace LabyrinthEditor
             {
                 MessageBox.Show(Localization.Get("export.saveError", ex.Message), Localization.Get("export.title"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void OnClearClick(object sender, RoutedEventArgs e)
+        {
+            MapCanvas.ClearCanvas();
         }
     }
 
@@ -162,7 +168,6 @@ namespace LabyrinthEditor
         Wall,
         Path,
         Room,
-        Player,
     }
 
     public static class TileTypeExtensions
@@ -172,8 +177,19 @@ namespace LabyrinthEditor
             TileType.Wall => false,
             TileType.Path => true,
             TileType.Room => true,
-            TileType.Player => true,
             _ => false,
         };
+    }
+
+    public enum EditorTool
+    {
+        PlaceTile,
+        PlacePlayer,
+    }
+
+    public record struct EditorOption
+    {
+        public EditorTool tool;
+        public TileType? tileType;
     }
 }
