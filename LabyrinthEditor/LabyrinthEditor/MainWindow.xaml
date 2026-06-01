@@ -1,0 +1,42 @@
+﻿<Window x:Class="LabyrinthEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LabyrinthEditor"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="30"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="200"/>
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,0">
+            <TextBlock x:Name="LanguageLabel" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <ComboBox x:Name="LanguageSelector" Width="120" SelectionChanged="OnLanguageSelectionChanged"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="5">
+            <Button x:Name="ExportButton" Content="Exportálás" Click="OnExportClick" Height="30" Margin="5"/>
+            <Button x:Name="ClearButton" Content="Törlés" Click="OnClearClick" Height="30" Margin="5"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Grid.Column="1" BorderBrush="Black" BorderThickness="1">
+            <local:MapCanvas x:Name="MapCanvas" />
+        </Border>
+
+        <Border Grid.Row="3" Grid.Column="1" BorderBrush="Black" BorderThickness="1">
+            <local:TileSelector x:Name="TileSelector" />
+        </Border>
+
+    </Grid>
+</Window>
