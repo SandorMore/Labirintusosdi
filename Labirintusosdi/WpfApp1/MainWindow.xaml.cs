@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using WpfApp1.Models;
@@ -327,27 +328,30 @@ namespace WpfApp1
 
             return (map, width, height);
         }
-
         List<(int, int)> locate_entrances(char[,] map)
         {
             var entrances = new HashSet<(int, int)>();
+            if (map == null || mapWidth <= 0 || mapHeight <= 0) return entrances.ToList();
 
             for (int x = 0; x < mapWidth; x++)
             {
                 char top = map[0, x];
                 char bottom = map[mapHeight - 1, x];
 
-                if (top != '.' && top != '╦' && top != '╔' && top != '╗' && top != '═')
+                if (top == '║')
                     entrances.Add((x, 0));
-                if (bottom != '.' && bottom != '╦' && bottom != '╔' && bottom != '╗' && bottom != '═')
+                if (bottom == '║')
                     entrances.Add((x, mapHeight - 1));
             }
 
             for (int y = 0; y < mapHeight; y++)
             {
-                if (map[y, 0] != '.' && map[y, 0] != '╔' && map[y, 0] != '╠')
+                char left = map[y, 0];
+                char right = map[y, mapWidth - 1];
+
+                if (left == '═')
                     entrances.Add((0, y));
-                if (map[y, mapWidth - 1] != '.' && map[y, mapWidth - 1] != '╗' && map[y, mapWidth - 1] != '╣')
+                if (right == '═')
                     entrances.Add((mapWidth - 1, y));
             }
 
